@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/maikvandergaag/github-governance/schemas/check-manifest.schema.json",
+  "title": "Compliance check manifest",
+  "type": "object",
+  "required": ["id", "scope", "title", "remediation", "dataSource"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+([.-][a-z0-9]+)*$" },
+    "scope": { "type": "string", "enum": ["enterprise", "org", "repo"] },
+    "title": { "type": "string", "minLength": 1 },
+    "remediation": { "type": "string", "minLength": 1 },
+    "dataSource": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "enterprise-owner-info",
+            "enterprise-actions-permissions",
+            "organization-section",
+            "repository",
+            "repository-branch-rules"
+          ]
+        },
+        "fields": { "type": "string", "minLength": 1 },
+        "section": {
+          "type": "string",
+          "enum": [
+            "settings",
+            "actionsPermissions",
+            "actionsWorkflowPermissions",
+            "webhooks",
+            "admins",
+            "rulesets",
+            "securityConfigDefaults",
+            "installations",
+            "actionsSecrets",
+            "runnerGroups"
+          ]
+        },
+        "codeOwners": { "type": "string", "enum": ["present", "valid"] },
+        "gitAttributes": { "type": "boolean" },
+        "gitIgnore": { "type": "boolean" },
+        "readme": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "cis": {
+      "type": "object",
+      "required": ["benchmark", "version", "recommendations", "coverage"],
+      "properties": {
+        "benchmark": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "recommendations": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        },
+        "coverage": { "type": "string", "enum": ["full", "partial"] }
+      },
+      "additionalProperties": false
+    },
+    "parameters": {
+      "type": "object",
+      "required": ["type", "properties", "additionalProperties"],
+      "properties": {
+        "type": { "type": "string", "enum": ["object"] },
+        "properties": { "type": "object" },
+        "required": { "type": "array", "items": { "type": "string" } },
+        "additionalProperties": { "type": "boolean", "enum": [false] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

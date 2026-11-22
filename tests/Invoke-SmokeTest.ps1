@@ -463,7 +463,7 @@ Describe 'Broken check' {
 }
 '@ | Set-Content 'broken-tests/org.2fa-required/org.2fa-required.Tests.ps1'
     $brokenPolicy = [pscustomobject]@{
-        checks = [pscustomobject]@{ 'org.2fa-required' = [pscustomobject]@{ enabled = $true } }
+        checks = [pscustomobject]@{ 'org.2fa-required' = [pscustomobject]@{ enabled = $true; severity = 'high' } }
         exemptions = [pscustomobject]@{}
     }
     $unexpectedRaised = $false

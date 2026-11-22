@@ -39,14 +39,13 @@ function Test-GHCompliance {
         return [System.IO.Path]::GetRelativePath($DocsPath + '/compliance', $DocPath).Replace('\', '/')
     }
 
-    $policy = Get-Content $PolicyPath -Raw | ConvertFrom-Json
     $checks = Get-GHComplianceChecks -TestsPath $TestsPath
-    $known = @($checks.enterprise.Keys) + @($checks.org.Keys) + @($checks.repo.Keys)
-    foreach ($entry in $policy.checks.PSObject.Properties) {
-        if ($entry.Value.enabled -and $entry.Name -notin $known) {
-            throw "Unknown enabled compliance check: $($entry.Name)"
-        }
+    try {
+        $policy = Get-Content -LiteralPath $PolicyPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        throw "Could not read central compliance policy $PolicyPath`: $($_.Exception.Message)"
     }
+    Assert-GHCompliancePolicy -Policy $policy -Checks $checks
     $policy = Merge-GHCompliancePolicy -Policy $policy -Checks $checks
     if ($UsePester) {
         Assert-GHConnection
