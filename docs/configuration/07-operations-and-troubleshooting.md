@@ -35,6 +35,8 @@ docs/output/
 
 Generated pages and snapshots are overwritten when documentation is selected. Do not edit them
 manually; update the source code or configuration and let a later run regenerate them.
+New local output is ignored by Git, while the workflow explicitly commits generated files. Already
+tracked output remains tracked and local changes to it still appear in Git.
 
 ## Outputs and lifecycle
 
