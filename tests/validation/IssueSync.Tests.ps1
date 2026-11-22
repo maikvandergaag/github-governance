@@ -162,6 +162,8 @@ Describe 'Per-check issue synchronization' {
     }
 
     It 'fails explicitly when a target installation token is unavailable' {
+        $originalApiUrl = $env:GITHUB_API_URL
+        $env:GITHUB_API_URL = 'https://mirror.example/api/v3'
         & (Get-Module GitHubGovernance) {
             $script:Connection = [pscustomobject]@{ Scope = 'enterprise' }
             $script:AuthMode = 'App'
@@ -173,9 +175,10 @@ Describe 'Per-check issue synchronization' {
             failures = @(); notEvaluated = @()
         }
         try {
-            { Sync-GHComplianceIssue -Findings $repo -Repository 'owner/docs' -Token 'fake' -IssuesInTargetRepositories 6>$null } |
+            { Sync-GHComplianceIssue -Findings $repo -Repository 'owner/docs' -Token 'fake' -ApiBaseUrl 'https://api.github.com' -IssuesInTargetRepositories 6>$null } |
                 Should -Throw '*No GitHub App installation token for example/repo*'
         } finally {
+            $env:GITHUB_API_URL = $originalApiUrl
             Disconnect-GHGovernance
         }
     }
@@ -195,7 +198,8 @@ Describe 'Per-check issue synchronization' {
         }
         try {
             Sync-GHComplianceIssue -Findings @((New-Target @((New-Failure 'org.2fa-required'))), $repo) `
-                -Repository 'owner/docs' -Token 'fake' -IssuesInTargetRepositories -MaxNewIssues 1 -WarningAction SilentlyContinue 6>$null
+                -Repository 'owner/docs' -Token 'fake' -ApiBaseUrl 'https://api.github.com' `
+                -IssuesInTargetRepositories -MaxNewIssues 1 -WarningAction SilentlyContinue 6>$null
             @($global:IssueSyncCalls | Where-Object { $_.method -eq 'Post' -and $_.uri -match '/issues$' }).Count | Should -Be 1
         } finally {
             Disconnect-GHGovernance
