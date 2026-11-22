@@ -32,4 +32,4 @@ jobs:
 
       - name: Run fake-API smoke test
         shell: pwsh
-        run: ./tests/Invoke-SmokeTest.ps1
+        run: pwsh -NoLogo -NoProfile -File ./tests/Invoke-SmokeTest.ps1
