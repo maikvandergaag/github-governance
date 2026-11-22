@@ -87,6 +87,7 @@ The Pages workflow builds and deploys after pushes to `main` and can also be sta
 from `main`. It publishes the toolkit documentation and check guidance, not the generated
 `docs/output/` inventory or snapshots. Review Pages visibility and access controls before
 enabling it, particularly in copies containing organization-specific documentation.
+The build checks links and anchors between the generated pages before deployment.
 
 ## Community
 
