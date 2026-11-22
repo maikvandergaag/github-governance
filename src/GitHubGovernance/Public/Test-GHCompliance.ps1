@@ -18,15 +18,15 @@ function Test-GHCompliance {
         na never creates an issue and never closes an existing one.
 
     .EXAMPLE
-        Test-GHCompliance -DataPath ./docs/enterprise/_data | Where-Object { $_.failures }
+        Test-GHCompliance -DataPath ./docs/output/_data | Where-Object { $_.failures }
     #>
     [CmdletBinding()]
     param(
-        [string] $DataPath = './docs/enterprise/_data',
+        [string] $DataPath = './docs/output/_data',
         [string] $PolicyPath = './compliance/policy.json',
         [string] $OutputFile,
         # Repository-relative path of the generated docs, used for links in issues/report/SARIF.
-        [string] $DocsPath = 'docs/enterprise',
+        [string] $DocsPath = 'docs/output',
         [string] $ReportFile,
         [switch] $UsePester,
         [string] $TestsPath = (Join-Path $PSScriptRoot '../../../tests'),

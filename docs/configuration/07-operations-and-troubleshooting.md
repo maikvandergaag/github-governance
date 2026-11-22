@@ -25,7 +25,7 @@ and token permissions.
 ## Generated documentation layout
 
 ```text
-docs/enterprise/
+docs/output/
 ├── README.md                     enterprise and organization index
 ├── enterprise/                   enterprise configuration pages
 ├── organizations/<org>/           one folder per organization and its pages
@@ -69,7 +69,7 @@ dry run of issue synchronization is documented in the [repository guide](../repo
 | Symptom | Likely cause or action |
 | --- | --- |
 | Environment protection blocks a run | The run is not on an allowed branch, or `enterprise-compliance` does not exist. |
-| App credential error | Check `DOCS_APP_CLIENT_ID`, the `DOCS_APP_PRIVATE_KEY` environment secret and App installation. |
+| App credential error | Check `GH_APP_CLIENT_ID`, the `GH_APP_PRIVATE_KEY` environment secret and App installation. |
 | Organization is listed as missing an installation | Install the reader App on that organization. |
 | Section is *Not available* (HTTP 403) | Grant the App the required read permission; see [permissions](reference/permissions.md). |
 | Section is *Not available* (HTTP 404) | The feature may be unavailable for the plan or token type. |

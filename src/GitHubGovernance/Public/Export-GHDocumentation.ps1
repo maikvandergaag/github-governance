@@ -15,11 +15,11 @@ function Export-GHDocumentation {
 
     .EXAMPLE
         Connect-GHGovernance -Enterprise contoso
-        Export-GHDocumentation -OutputPath ./docs/enterprise
+        Export-GHDocumentation -OutputPath ./docs/output
     #>
     [CmdletBinding()]
     param(
-        [string] $OutputPath = './docs/enterprise',
+        [string] $OutputPath = './docs/output',
         # Limit the run to these organizations (useful for testing).
         [string[]] $Organization,
         [switch] $SkipRepositories,

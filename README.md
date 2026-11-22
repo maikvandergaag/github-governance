@@ -2,8 +2,8 @@
 
 ## Generated documentation
 
-- [Enterprise documentation](docs/enterprise/README.md)
-- [Compliance findings](docs/enterprise/compliance/README.md)
+- [Enterprise documentation](docs/output/README.md)
+- [Compliance findings](docs/output/compliance/README.md)
 
 This repository automatically documents the GitHub Enterprise Cloud environment and tracks configuration changes over time.
 
