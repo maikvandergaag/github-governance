@@ -1,4 +1,4 @@
-name: Check - GitHub Enterprise
+name: Check - GitHub Platform
 
 on:
   schedule:
