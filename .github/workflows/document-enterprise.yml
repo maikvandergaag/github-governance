@@ -19,9 +19,17 @@ on:
         type: boolean
         default: true
       compliance:
-        description: Run compliance tests and synchronize issues
+        description: Run compliance tests
         type: boolean
         default: true
+      sync_issues:
+        description: Create and synchronize compliance issues (requires compliance tests)
+        type: boolean
+        default: true
+      target_repository_issues:
+        description: Create repository findings in their target repositories
+        type: boolean
+        default: false
       publish_sarif:
         description: Publish results to code scanning (requires compliance tests)
         type: boolean
@@ -40,6 +48,8 @@ env:
   RUN_DOCUMENTATION: ${{ github.event_name == 'schedule' || inputs.documentation }}
   RUN_COMPLIANCE: ${{ github.event_name == 'schedule' || inputs.compliance }}
   RUN_SARIF: ${{ github.event_name == 'schedule' || inputs.publish_sarif }}
+  RUN_ISSUES: ${{ (github.event_name == 'schedule' && vars.SYNC_ISSUES != 'false') || (github.event_name == 'workflow_dispatch' && inputs.sync_issues) }}
+  TARGET_REPOSITORY_ISSUES: ${{ (github.event_name == 'schedule' && vars.TARGET_REPOSITORY_ISSUES == 'true') || (github.event_name == 'workflow_dispatch' && inputs.target_repository_issues) }}
   ENTERPRISE_API_URL: ${{ vars.ENTERPRISE_API_URL || 'https://api.github.com' }}
   OUTPUT_PATH: docs/output
   MODULE_PATH: ./src/GitHubGovernance/GitHubGovernance.psd1
@@ -57,6 +67,8 @@ jobs:
       documentation: ${{ steps.selections.outputs.documentation }}
       compliance: ${{ steps.selections.outputs.compliance }}
       sarif: ${{ steps.selections.outputs.sarif }}
+      issues: ${{ steps.selections.outputs.issues }}
+      target_repository_issues: ${{ steps.selections.outputs.target_repository_issues }}
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -133,6 +145,8 @@ jobs:
           "documentation=$env:RUN_DOCUMENTATION" >> $env:GITHUB_OUTPUT
           "compliance=$env:RUN_COMPLIANCE" >> $env:GITHUB_OUTPUT
           "sarif=$env:RUN_SARIF" >> $env:GITHUB_OUTPUT
+          "issues=$env:RUN_ISSUES" >> $env:GITHUB_OUTPUT
+          "target_repository_issues=$env:TARGET_REPOSITORY_ISSUES" >> $env:GITHUB_OUTPUT
 
   inventory:
     needs: validate
@@ -414,9 +428,10 @@ jobs:
 
   sync-issues:
     needs: [validate, pester]
-    if: ${{ needs.validate.outputs.compliance == 'true' }}
+    if: ${{ needs.validate.outputs.compliance == 'true' && needs.validate.outputs.issues == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    environment: enterprise-compliance
     permissions:
       contents: read
       issues: write
@@ -432,8 +447,25 @@ jobs:
       - name: Sync compliance issues
         shell: pwsh
         env:
-          # The built-in token is enough: issues are created in this (docs) repository.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_APP_CLIENT_ID: ${{ vars.GH_APP_CLIENT_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          TARGET_REPOSITORY_ISSUES: ${{ needs.validate.outputs.target_repository_issues }}
         run: |
+          $ErrorActionPreference = 'Stop'
           Import-Module $env:MODULE_PATH -Force
-          Sync-GHComplianceIssue -FindingsFile './compliance-findings.json' -Scope $env:ACCOUNT_SCOPE -Account $env:ACCOUNT_LOGIN
+          $targetRepositories = $env:TARGET_REPOSITORY_ISSUES -eq 'true'
+          try {
+            if ($targetRepositories) {
+              $scope = switch ($env:ACCOUNT_SCOPE) {
+                'enterprise' { @{ Enterprise = $env:ENTERPRISE_SLUG } }
+                'organization' { @{ Organization = $env:ACCOUNT_LOGIN } }
+                'user' { @{ User = $env:ACCOUNT_LOGIN } }
+                default { throw "Invalid ACCOUNT_SCOPE: $env:ACCOUNT_SCOPE" }
+              }
+              Connect-GHGovernance @scope -AppClientId $env:GH_APP_CLIENT_ID -AppPrivateKey $env:GH_APP_PRIVATE_KEY -ApiBaseUrl $env:ENTERPRISE_API_URL | Out-Null
+            }
+            Sync-GHComplianceIssue -FindingsFile './compliance-findings.json' -Scope $env:ACCOUNT_SCOPE -Account $env:ACCOUNT_LOGIN -ApiBaseUrl $env:ENTERPRISE_API_URL -IssuesInTargetRepositories:$targetRepositories
+          } finally {
+            if ($targetRepositories) { Disconnect-GHGovernance }
+          }

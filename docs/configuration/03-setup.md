@@ -14,6 +14,8 @@ Add these repository or environment variables under **Settings > Secrets and var
 | `ENTERPRISE_SLUG` | Enterprise mode | Enterprise slug from `github.com/enterprises/<slug>` |
 | `ACCOUNT_LOGIN` | Organization or user mode | Organization or personal account login |
 | `ACCOUNT_SCOPE` | No | Scheduled-run mode: `enterprise` (default), `organization`, or `user`; manual runs use the dropdown |
+| `SYNC_ISSUES` | No | Set to `false` to disable issue synchronization on scheduled runs; defaults to enabled |
+| `TARGET_REPOSITORY_ISSUES` | No | Set to `true` to manage repository issues in their target repositories on scheduled runs; defaults to disabled |
 | `GH_APP_CLIENT_ID` | Yes | GitHub App client ID (starts with `Iv`) |
 | `ENTERPRISE_API_URL` | GHE.com only | `https://api.<subdomain>.ghe.com`; empty defaults to `https://api.github.com` |
 
@@ -23,7 +25,7 @@ repository variable.
 
 Configure the environment to allow deployment from `main`. Runs from other branches will not receive
 the private key. Add environment reviewers only if approval for every scheduled run is intended;
-validation, inventory and Pester jobs use this environment and may each require approval.
+validation, inventory, Pester and issue-sync jobs use this environment and may each require approval.
 
 `GITHUB_TOKEN` is provided by GitHub Actions; do not create it manually.
 
@@ -40,12 +42,13 @@ validation, inventory and Pester jobs use this environment and may each require 
 
 1. Review [Compliance policy](04-policy.md) and [Exemptions](05-exemptions.md).
 2. Start **Actions > Check - GitHub Enterprise > Run workflow** and select the account mode and desired
-   actions. The default is enterprise mode with documentation, tests and SARIF enabled.
+   actions. The default is enterprise mode with documentation, tests, issue synchronization and SARIF
+   enabled. Select target-repository issues to route repository findings to their own repositories.
 3. Review `docs/output/README.md` for missing App installations and unavailable sections.
 4. Review `docs/output/compliance/README.md`, issues and **Security > Code scanning** for findings.
 5. Adjust policy or exemptions and run the workflow again.
 
-The issue sync creates at most 150 new issues per run. Subsequent runs continue with remaining
+The issue sync creates at most 500 new issues per run by default. Subsequent runs continue with remaining
 findings.
 
 ## Standalone organizations and personal accounts

@@ -12,8 +12,11 @@ The `Check - GitHub Enterprise` workflow runs weekly and supports manual dispatc
    reports them when SARIF is disabled.
 4. `commit_docs` commits documentation when selected; `publish_sarif` uploads SARIF when selected.
 
-Manual runs can select documentation, compliance tests and SARIF independently, except that SARIF
-requires tests. Scheduled runs enable all three. With documentation disabled, compliance collects a
+Manual runs can select documentation, compliance tests, issue synchronization and SARIF; issue
+synchronization runs only with tests, and SARIF requires tests. Repository issues can optionally be
+routed to the target repositories. Scheduled runs enable documentation, tests, centralized issue
+synchronization and SARIF by default; `SYNC_ISSUES=false` disables synchronization and
+`TARGET_REPOSITORY_ISSUES=true` enables target-repository routing. With documentation disabled, compliance collects a
 temporary inventory and issue links may point to older or absent pages; SARIF points to the committed
 policy instead. With neither documentation nor tests selected, no collection runs. The
 `documentation-patch` artifact transfers inventory to Pester, and `compliance-findings` contains
@@ -42,11 +45,17 @@ tracked output remains tracked and local changes to it still appear in Git.
 
 - The compliance report groups findings by check and target.
 - Each failed check/target pair can create one issue using `tests/<check-id>/issue.md`.
+- By default issues are managed in the documentation repository. With target routing enabled,
+  repository issues are managed in their respective repositories; enterprise and organization issues
+  remain centralized. Existing issues are not migrated or closed when routing changes; review them
+  manually. Disabling synchronization leaves all existing issues untouched.
 - Issues close when the check stops failing, is disabled or exempted, or its target is archived or
-  removed. Checks that cannot be evaluated do not create or close issues.
+  removed. Checks that cannot be evaluated do not create or close issues. Target-repository issues
+  can only be synchronized while their repositories remain in the inventory and accessible; archived
+  or removed repositories may require manual cleanup.
 - SARIF results appear in **Security > Code scanning**. They include severity, requirement,
   remediation and target links.
-- At most 150 new issues are created in a run. Rate-limit responses use bounded retries; rerun after
+- At most 500 new issues are created in a run by default, across all destinations. Rate-limit responses use bounded retries; rerun after
   the limit resets if synchronization still fails.
 
 ## Local validation
@@ -65,6 +74,9 @@ Invoke-Pester -Path ./tests/validation
 
 For live checks, connect the App and run the appropriate Pester test or use the workflow. A local
 dry run of issue synchronization is documented in the [repository guide](../repo/README.md#compliance-issues).
+To preview target-repository routing locally, connect the App with `Connect-GHGovernance`, then pass
+`-IssuesInTargetRepositories -DryRun` to `Sync-GHComplianceIssue` along with the documentation
+repository and its token. For GHE.com, pass the same `-ApiBaseUrl` to both commands.
 
 ## Troubleshooting
 
@@ -80,5 +92,6 @@ dry run of issue synchronization is documented in the [repository guide](../repo
 | Protected-branch push fails | Allow the GitHub Actions bot to bypass the rule or adjust the publishing approach. |
 | SARIF upload fails | Confirm workflow token permissions and that Code Security is enabled for a private/internal repository. |
 | Issue sync is rate-limited | Wait for the rate limit to reset, then rerun the workflow. |
+| Target-repository issue sync fails | Verify the App installation has Issues read and write access and issues are enabled in the target repository. |
 
 For repository-specific setup and generated content, return to the [repository guide](../repo/README.md).

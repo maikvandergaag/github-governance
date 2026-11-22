@@ -1,12 +1,15 @@
 function Sync-GHComplianceIssue {
     <#
     .SYNOPSIS
-        Creates, updates and closes compliance issues in the docs repository based on a findings file.
+        Creates, updates and closes compliance issues based on a findings file.
 
     .DESCRIPTION
         One issue per failing check and target, with content from the check's issue.md template.
         Issues are identified by hidden target and check markers. Existing grouped issues without
         a check marker are left untouched. Unevaluated checks never close their existing issues.
+        By default issues are managed in the docs repository. With -IssuesInTargetRepositories,
+        repository findings are managed in their respective repositories using the connected App;
+        enterprise and organization findings remain in the docs repository.
 
     .EXAMPLE
         Test-GHCompliance | Sync-GHComplianceIssue -Repository contoso/github-docs -DryRun
@@ -28,6 +31,7 @@ function Sync-GHComplianceIssue {
         [string] $TemplatePath = (Join-Path $PSScriptRoot '../../../tests'),
         # Safety net against flooding the repo on the first run (e.g. 400 repos without CODEOWNERS).
         [int] $MaxNewIssues = 500,
+        [switch] $IssuesInTargetRepositories,
         [switch] $DryRun
     )
     begin {
@@ -51,14 +55,23 @@ function Sync-GHComplianceIssue {
                 $Body,
                 [switch] $Paginate
             )
-            $params = @{
-                Method = $Method
-                Uri = "$($ApiBaseUrl.TrimEnd('/'))/$($Path.TrimStart('/'))"
-                Headers = @{
+            $headers = if ($IssuesInTargetRepositories -and $issueRepository -ne $Repository) {
+                $targetHeaders = Get-RequestHeaders -Scope (Get-ScopeForPath "repos/$issueRepository")
+                if (-not $targetHeaders) {
+                    throw "No GitHub App installation token for $issueRepository."
+                }
+                $targetHeaders
+            } else {
+                @{
                     Authorization = "Bearer $Token"
                     Accept = 'application/vnd.github+json'
                     'X-GitHub-Api-Version' = '2022-11-28'
                 }
+            }
+            $params = @{
+                Method = $Method
+                Uri = "$($ApiBaseUrl.TrimEnd('/'))/$($Path.TrimStart('/'))"
+                Headers = $headers
             }
             if ($null -ne $Body) {
                 $params.Body = $Body | ConvertTo-Json -Depth 10
@@ -215,6 +228,15 @@ function Sync-GHComplianceIssue {
             if ($Scope -ne 'enterprise' -and [string]::IsNullOrWhiteSpace($Account)) {
                 throw 'Account is required when synchronizing a single organization or user.'
             }
+            if ($IssuesInTargetRepositories) {
+                Assert-GHConnection
+                if ($script:AuthMode -ne 'App') {
+                    throw 'Target repository issue synchronization requires a GitHub App connection.'
+                }
+                if ($ApiBaseUrl.TrimEnd('/') -ne $script:ApiBaseUrl.TrimEnd('/')) {
+                    throw 'Issue API URL must match the connected GitHub App API URL.'
+                }
+            }
 
             $findings = if ($Findings) {
                 @($Findings)
@@ -232,6 +254,17 @@ function Sync-GHComplianceIssue {
                 }
             }
             $failing = @($findings | Where-Object { @($_.failures).Count -gt 0 })
+            $issueRepositories = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+            [void]$issueRepositories.Add($Repository)
+            if ($IssuesInTargetRepositories) {
+                foreach ($target in @($findings | Where-Object { $_.type -eq 'repo' })) {
+                    if ($target.id -notmatch '^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$' -or
+                        $target.id -match '(^|/)\.{1,2}(/|$)') {
+                        throw "Invalid target repository: $($target.id)"
+                    }
+                    [void]$issueRepositories.Add([string]$target.id)
+                }
+            }
 
             # Validate every required template before making any changes to GitHub.
             $bodies = @{}
@@ -252,148 +285,164 @@ function Sync-GHComplianceIssue {
                 }
             }
 
-            # Only create missing labels, avoiding repeated validation errors on later runs.
-            $labelDefs = @(
-                @{ name = $Label; color = '5319e7'; description = 'Managed by the compliance workflow' }
-                @{ name = "$Label`:org"; color = 'c5def5'; description = 'Organization-level compliance finding' }
-                @{ name = "$Label`:repo"; color = 'c5def5'; description = 'Repository-level compliance finding' }
-                @{ name = "$Label`:enterprise"; color = 'c5def5'; description = 'Enterprise-level compliance finding' }
-                @{ name = 'severity:high'; color = 'b60205'; description = '' }
-                @{ name = 'severity:medium'; color = 'fbca04'; description = '' }
-                @{ name = 'severity:low'; color = '0e8a16'; description = '' }
-            )
-            $existingLabels = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-            if ($Token) {
-                foreach ($existing in Invoke-IssueApi -Method Get -Path "repos/$Repository/labels?per_page=100" -Paginate) {
-                    if ($existing.name) {
-                        [void]$existingLabels.Add([string]$existing.name)
-                    }
-                }
-            }
-            foreach ($def in $labelDefs) {
-                if ($existingLabels.Contains($def.name)) {
-                    continue
-                }
-                try {
-                    Invoke-Write "Ensure label $($def.name)" { Invoke-IssueApi -Method Post -Path "repos/$Repository/labels" -Body $def } | Out-Null
-                } catch {
-                    $response = if ($_.Exception.PSObject.Properties['Response']) {
-                        $_.Exception.Response
-                    }
-                    $details = if ($_.ErrorDetails) {
-                        $_.ErrorDetails.Message
-                    } else {
-                        ''
-                    }
-                    if (-not ($response -and [int]$response.StatusCode -eq 422 -and
-                            "$($_.Exception.Message) $details" -match 'already_exists')) {
-                        throw
-                    }
-                }
-            }
-
-            # Grouped issues from the previous format deliberately remain untouched.
-            $openIssues = @{}
-            $legacyCount = 0
-            if ($Token) {
-                foreach ($issue in Invoke-IssueApi -Method Get -Path "repos/$Repository/issues?state=open&labels=$Label&per_page=100" -Paginate) {
-                    if ($issue.PSObject.Properties['pull_request']) {
-                        continue
-                    }
-                    $body = [string]$issue.body
-                    $targetMarker = [regex]::Match($body, '(?m)^<!-- compliance-target: (\S+) -->\r?$')
-                    $checkMarker = [regex]::Match($body, '(?m)^<!-- compliance-check: ([a-z0-9]+(?:[.-][a-z0-9]+)*) -->\r?$')
-                    if (-not $targetMarker.Success) {
-                        continue
-                    }
-                    if (-not $checkMarker.Success) {
-                        $legacyCount++; continue
-                    }
-                    $key = "$($targetMarker.Groups[1].Value)|$($checkMarker.Groups[1].Value)"
-                    if ($openIssues.ContainsKey($key)) {
-                        throw "Multiple open compliance issues for $key"
-                    }
-                    $openIssues[$key] = $issue
-                }
-            }
-            if ($legacyCount -gt 0) {
-                Write-Warning "$legacyCount existing grouped compliance issue(s) were left untouched; review them manually."
-            }
-
             $stats = [ordered]@{ created = 0; updated = 0; unchanged = 0; closed = 0; kept = 0; skipped = 0 }
 
-            # Create / update.
-            foreach ($target in $failing) {
-                foreach ($failure in $target.failures) {
-                    $key = "$($target.id)|$($failure.check)"
-                    $title = Get-IssueTitle $target $failure
-                    $body = $bodies[$key]
-                    $labels = Get-IssueLabels $target $failure
+            foreach ($issueRepository in @($issueRepositories | Sort-Object)) {
+                $repositoryFailures = @($failing | Where-Object {
+                    if (-not $IssuesInTargetRepositories) { $true }
+                    elseif ($_.type -eq 'repo') { $_.id -eq $issueRepository }
+                    else { $issueRepository -eq $Repository }
+                })
 
-                    if ($openIssues.ContainsKey($key)) {
-                        $issue = $openIssues[$key]
-                        $currentLabels = @($issue.labels | ForEach-Object name | Sort-Object)
-                        $sameBody = ([string]$issue.body).Replace("`r", '') -eq $body
-                        $sameLabels = ($currentLabels -join ',') -eq (@($labels | Sort-Object) -join ',')
-                        if ($sameBody -and $sameLabels -and $issue.title -eq $title) {
-                            $stats.unchanged++; continue
+                # Only create missing labels, avoiding repeated validation errors on later runs.
+                $labelDefs = @(
+                    @{ name = $Label; color = '5319e7'; description = 'Managed by the compliance workflow' }
+                    @{ name = "$Label`:org"; color = 'c5def5'; description = 'Organization-level compliance finding' }
+                    @{ name = "$Label`:repo"; color = 'c5def5'; description = 'Repository-level compliance finding' }
+                    @{ name = "$Label`:enterprise"; color = 'c5def5'; description = 'Enterprise-level compliance finding' }
+                    @{ name = 'severity:high'; color = 'b60205'; description = '' }
+                    @{ name = 'severity:medium'; color = 'fbca04'; description = '' }
+                    @{ name = 'severity:low'; color = '0e8a16'; description = '' }
+                )
+                $existingLabels = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+                if ($Token) {
+                    foreach ($existing in Invoke-IssueApi -Method Get -Path "repos/$issueRepository/labels?per_page=100" -Paginate) {
+                        if ($existing.name) {
+                            [void]$existingLabels.Add([string]$existing.name)
                         }
-                        Invoke-Write "Update #$($issue.number) $title" {
-                            Invoke-IssueApi -Method Patch -Path "repos/$Repository/issues/$($issue.number)" -Body @{ title = $title; body = $body; labels = $labels }
-                        } | Out-Null
-                        $stats.updated++
-                    } elseif ($stats.created -ge $MaxNewIssues) {
-                        $stats.skipped++
-                    } else {
-                        Invoke-Write "Create $title" {
-                            Invoke-IssueApi -Method Post -Path "repos/$Repository/issues" -Body @{ title = $title; body = $body; labels = $labels }
-                        } | Out-Null
-                        $stats.created++
                     }
                 }
-            }
-
-            # Close only when this specific check can be evaluated or the target was removed.
-            foreach ($key in @($openIssues.Keys | Sort-Object)) {
-                $issue = $openIssues[$key]
-                $id, $check = $key.Split('|', 2)
-                if ($Scope -ne 'enterprise' -and
-                    ($id -ne $Account -and -not $id.StartsWith("$Account/", [StringComparison]::OrdinalIgnoreCase))) {
-                    $stats.kept++; continue
-                }
-                if ($Scope -eq 'user' -and -not $id.Contains('/')) {
-                    $stats.kept++; continue
-                }
-                $target = $byId[$id]
-                $reason = $null
-
-                if ($target) {
-                    if (@($target.failures | Where-Object { $_.check -eq $check }).Count -gt 0) {
+                foreach ($def in $labelDefs) {
+                    if ($IssuesInTargetRepositories -and $repositoryFailures.Count -eq 0) { break }
+                    if ($existingLabels.Contains($def.name)) {
                         continue
                     }
-                    $unknown = @(@($target.notEvaluated) | Where-Object { $_ -and $_.check -eq $check })
-                    if ($unknown.Count -gt 0) {
-                        $stats.kept++; continue
-                    }
-                    $reason = "This check no longer reports a failure. Closing automatically."
-                } else {
-                    $org = $id.Split('/')[0]
-                    $orgTarget = $byId[$org]
-                    if ($id.Contains('/') -and $orgTarget -and -not $orgTarget.reposEvaluated) {
-                        $stats.kept++; continue
-                    }
-                    $reason = if ($id.Contains('/') -and $orgTarget) {
-                        'Repository no longer exists or has been archived. Closing automatically.'
-                    } else {
-                        'Target no longer exists in the enterprise. Closing automatically.'
+                    try {
+                        Invoke-Write "Ensure label $($def.name) in $issueRepository" { Invoke-IssueApi -Method Post -Path "repos/$issueRepository/labels" -Body $def } | Out-Null
+                    } catch {
+                        $response = if ($_.Exception.PSObject.Properties['Response']) {
+                            $_.Exception.Response
+                        }
+                        $details = if ($_.ErrorDetails) {
+                            $_.ErrorDetails.Message
+                        } else {
+                            ''
+                        }
+                        if (-not ($response -and [int]$response.StatusCode -eq 422 -and
+                                "$($_.Exception.Message) $details" -match 'already_exists')) {
+                            throw
+                        }
                     }
                 }
 
-                Invoke-Write "Close #$($issue.number) ($id)" {
-                    Invoke-IssueApi -Method Post -Path "repos/$Repository/issues/$($issue.number)/comments" -Body @{ body = $reason } | Out-Null
-                    Invoke-IssueApi -Method Patch -Path "repos/$Repository/issues/$($issue.number)" -Body @{ state = 'closed'; state_reason = 'completed' } | Out-Null
-                } | Out-Null
-                $stats.closed++
+                # Grouped issues from the previous format deliberately remain untouched.
+                $openIssues = @{}
+                $legacyCount = 0
+                if ($Token) {
+                    foreach ($issue in Invoke-IssueApi -Method Get -Path "repos/$issueRepository/issues?state=open&labels=$Label&per_page=100" -Paginate) {
+                        if ($issue.PSObject.Properties['pull_request']) {
+                            continue
+                        }
+                        $body = [string]$issue.body
+                        $targetMarker = [regex]::Match($body, '(?m)^<!-- compliance-target: (\S+) -->\r?$')
+                        $checkMarker = [regex]::Match($body, '(?m)^<!-- compliance-check: ([a-z0-9]+(?:[.-][a-z0-9]+)*) -->\r?$')
+                        if (-not $targetMarker.Success) {
+                            continue
+                        }
+                        $issueTarget = $targetMarker.Groups[1].Value
+                        if ($IssuesInTargetRepositories -and (
+                            ($issueTarget.Contains('/') -and $issueTarget -ne $issueRepository) -or
+                            (-not $issueTarget.Contains('/') -and $issueRepository -ne $Repository)
+                        )) {
+                            continue
+                        }
+                        if (-not $checkMarker.Success) {
+                            $legacyCount++; continue
+                        }
+                        $key = "$($targetMarker.Groups[1].Value)|$($checkMarker.Groups[1].Value)"
+                        if ($openIssues.ContainsKey($key)) {
+                            throw "Multiple open compliance issues for $key"
+                        }
+                        $openIssues[$key] = $issue
+                    }
+                }
+                if ($legacyCount -gt 0) {
+                    Write-Warning "$legacyCount existing grouped compliance issue(s) were left untouched; review them manually."
+                }
+
+                # Create / update.
+                foreach ($target in $repositoryFailures) {
+                    foreach ($failure in $target.failures) {
+                        $key = "$($target.id)|$($failure.check)"
+                        $title = Get-IssueTitle $target $failure
+                        $body = $bodies[$key]
+                        $labels = Get-IssueLabels $target $failure
+
+                        if ($openIssues.ContainsKey($key)) {
+                            $issue = $openIssues[$key]
+                            $currentLabels = @($issue.labels | ForEach-Object name | Sort-Object)
+                            $sameBody = ([string]$issue.body).Replace("`r", '') -eq $body
+                            $sameLabels = ($currentLabels -join ',') -eq (@($labels | Sort-Object) -join ',')
+                            if ($sameBody -and $sameLabels -and $issue.title -eq $title) {
+                                $stats.unchanged++; continue
+                            }
+                            Invoke-Write "Update $issueRepository#$($issue.number) $title" {
+                                Invoke-IssueApi -Method Patch -Path "repos/$issueRepository/issues/$($issue.number)" -Body @{ title = $title; body = $body; labels = $labels }
+                            } | Out-Null
+                            $stats.updated++
+                        } elseif ($stats.created -ge $MaxNewIssues) {
+                            $stats.skipped++
+                        } else {
+                            Invoke-Write "Create $title in $issueRepository" {
+                                Invoke-IssueApi -Method Post -Path "repos/$issueRepository/issues" -Body @{ title = $title; body = $body; labels = $labels }
+                            } | Out-Null
+                            $stats.created++
+                        }
+                    }
+                }
+
+                # Close only when this specific check can be evaluated or the target was removed.
+                foreach ($key in @($openIssues.Keys | Sort-Object)) {
+                    $issue = $openIssues[$key]
+                    $id, $check = $key.Split('|', 2)
+                    if ($Scope -ne 'enterprise' -and
+                        ($id -ne $Account -and -not $id.StartsWith("$Account/", [StringComparison]::OrdinalIgnoreCase))) {
+                        $stats.kept++; continue
+                    }
+                    if ($Scope -eq 'user' -and -not $id.Contains('/')) {
+                        $stats.kept++; continue
+                    }
+                    $target = $byId[$id]
+                    $reason = $null
+
+                    if ($target) {
+                        if (@($target.failures | Where-Object { $_.check -eq $check }).Count -gt 0) {
+                            continue
+                        }
+                        $unknown = @(@($target.notEvaluated) | Where-Object { $_ -and $_.check -eq $check })
+                        if ($unknown.Count -gt 0) {
+                            $stats.kept++; continue
+                        }
+                        $reason = "This check no longer reports a failure. Closing automatically."
+                    } else {
+                        $org = $id.Split('/')[0]
+                        $orgTarget = $byId[$org]
+                        if ($id.Contains('/') -and $orgTarget -and -not $orgTarget.reposEvaluated) {
+                            $stats.kept++; continue
+                        }
+                        $reason = if ($id.Contains('/') -and $orgTarget) {
+                            'Repository no longer exists or has been archived. Closing automatically.'
+                        } else {
+                            'Target no longer exists in the enterprise. Closing automatically.'
+                        }
+                    }
+
+                    Invoke-Write "Close $issueRepository#$($issue.number) ($id)" {
+                        Invoke-IssueApi -Method Post -Path "repos/$issueRepository/issues/$($issue.number)/comments" -Body @{ body = $reason } | Out-Null
+                        Invoke-IssueApi -Method Patch -Path "repos/$issueRepository/issues/$($issue.number)" -Body @{ state = 'closed'; state_reason = 'completed' } | Out-Null
+                    } | Out-Null
+                    $stats.closed++
+                }
             }
 
             $summary = "Compliance: $($failing.Count) non-compliant target(s). " + (($stats.GetEnumerator() | ForEach-Object { "$($_.Key): $($_.Value)" }) -join ', ')
