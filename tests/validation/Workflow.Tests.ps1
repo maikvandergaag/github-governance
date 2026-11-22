@@ -35,6 +35,7 @@ BeforeAll {
             GH_APP_CLIENT_ID = 'client'; GH_APP_PRIVATE_KEY = 'fixture-key'; GITHUB_TOKEN = 'fixture-token'
             ENTERPRISE_API_URL = 'https://api.github.com'
             RUN_DOCUMENTATION = 'true'; RUN_COMPLIANCE = 'true'; RUN_SARIF = 'true'
+            RUN_ISSUES = 'true'; TARGET_REPOSITORY_ISSUES = 'false'
             DOCS_PUBLISH_MODE = 'pull_request'
             MODULE_PATH = './src/GitHubGovernance/GitHubGovernance.psd1'
         }
@@ -65,6 +66,50 @@ Describe 'Compliance workflow stages' {
         foreach ($name in 'documentation', 'compliance', 'publish_sarif') {
             $workflow | Should -Match ("(?ms)^      ${name}:\r?\n.*?        type: boolean\r?\n        default: true")
             $workflow | Should -Match ("github\.event_name == 'schedule' \|\| inputs\.$name")
+        }
+    }
+
+    It 'provides independent issue synchronization and repository routing selections' {
+        $workflow | Should -Match '(?ms)^      sync_issues:\r?\n.*?        type: boolean\r?\n        default: true'
+        $workflow | Should -Match '(?ms)^      target_repository_issues:\r?\n.*?        type: boolean\r?\n        default: false'
+        $workflow | Should -Match "vars\.SYNC_ISSUES != 'false'"
+        $workflow | Should -Match "vars\.TARGET_REPOSITORY_ISSUES == 'true'"
+        $sync | Should -Match "needs\.validate\.outputs\.issues == 'true'"
+        $sync | Should -Match '-IssuesInTargetRepositories:\$targetRepositories'
+        $sync | Should -Match 'Connect-GHGovernance'
+        $sync | Should -Match 'Disconnect-GHGovernance'
+    }
+
+    It 'records disabled synchronization and enabled target routing independently' {
+        $output = Join-Path $TestDrive 'issue-selections'
+        Invoke-WorkflowStepFixture (Get-WorkflowStepScript 'Record selected actions') @{
+            RUN_ISSUES = 'false'; TARGET_REPOSITORY_ISSUES = 'true'; GITHUB_OUTPUT = $output
+        }
+        $outputs = Get-Content $output
+        $outputs | Should -Contain 'issues=false'
+        $outputs | Should -Contain 'target_repository_issues=true'
+    }
+
+    It 'uses the App only for target repository issue routing' -TestCases @(
+        @{ TargetRouting = 'true' }
+        @{ TargetRouting = 'false' }
+    ) {
+        param($TargetRouting)
+        Mock Import-Module {}
+        Mock Connect-GHGovernance {}
+        Mock Disconnect-GHGovernance {}
+        Mock Sync-GHComplianceIssue {}
+        Invoke-WorkflowStepFixture (Get-WorkflowStepScript 'Sync compliance issues' $sync) @{
+            TARGET_REPOSITORY_ISSUES = $TargetRouting
+        }
+        if ($TargetRouting -eq 'true') {
+            Should -Invoke Connect-GHGovernance -Times 1
+            Should -Invoke Sync-GHComplianceIssue -Times 1 -ParameterFilter { $IssuesInTargetRepositories }
+            Should -Invoke Disconnect-GHGovernance -Times 1
+        } else {
+            Should -Invoke Connect-GHGovernance -Times 0
+            Should -Invoke Sync-GHComplianceIssue -Times 1 -ParameterFilter { -not $IssuesInTargetRepositories }
+            Should -Invoke Disconnect-GHGovernance -Times 0
         }
     }
 
@@ -117,6 +162,8 @@ Describe 'Compliance workflow stages' {
             $outputs | Should -Contain "documentation=$Docs"
             $outputs | Should -Contain "compliance=$Compliance"
             $outputs | Should -Contain "sarif=$Sarif"
+            $outputs | Should -Contain 'issues=true'
+            $outputs | Should -Contain 'target_repository_issues=false'
         }
     }
 

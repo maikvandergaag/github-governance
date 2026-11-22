@@ -56,16 +56,21 @@ collection-completeness markers were added are reported as not evaluated; regene
 to evaluate those checks.
 
 It writes a findings report to `docs/output/compliance/README.md`
-(proposed or committed when documentation is selected). `Sync-GHComplianceIssue` manages issues in **this** repository:
+(committed when documentation is selected). By default `Sync-GHComplianceIssue` manages issues in
+**this** repository. Issue synchronization can be disabled or repository findings can be routed to
+their target repositories; enterprise and organization findings remain here. See
+[workflow options](../configuration/07-operations-and-troubleshooting.md#workflow) and
+[permissions](../configuration/reference/permissions.md).
 
 
 - One issue per failed check and affected enterprise, organization or repository, labelled `compliance`, `compliance:enterprise|org|repo` and the check's `severity:<level>`.
 - Issue text comes from `tests/<check-id>/issue.md`. Templates support `{{target}}`, `{{target_url}}`, `{{docs_url}}`, `{{check}}`, `{{severity}}` and `{{finding}}`; the sync adds hidden markers for tracking.
-- Updated only when content changes; closed automatically when that check no longer fails, or the target is archived or removed. Disabling or exempting a check also removes its failure.
+- Updated only when content changes; closed automatically when that check no longer fails, or the target is archived or removed. Disabling or exempting a check also removes its failure. Target-repository issues can only be synchronized while the repository is inventoried and accessible.
 - Checks that cannot be evaluated (missing data/scopes) never create issues or close their existing issue on incomplete data.
 - Paginated API requests keep authentication on each page and only follow links to the same API origin.
 - Previously grouped issues are left untouched and need manual review; new per-check issues may overlap them.
-- Max 150 new issues per run (`-MaxNewIssues`), so the first run doesn't flood the repo.
+- Changing routing does not migrate or close existing issues in the previous destination; review them manually.
+- Max 500 new issues per run by default (`-MaxNewIssues`), across all destinations.
 - Mutating issue requests are paced; GitHub rate-limit responses are retried with bounded backoff. If the limit persists, the sync fails and can be rerun after it resets.
 - Use the local dry run below to see what would happen without touching issues.
 

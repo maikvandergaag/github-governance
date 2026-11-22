@@ -82,7 +82,8 @@ credentials. For an introduction without credentials, see the [illustrative exam
 ## Recommended reading
 
 1. [Prerequisites and access](../configuration/02-prerequisites-and-access.md): create and install the
-   read-only GitHub App and grant its permissions.
+   GitHub App and grant its permissions. Target-repository issue routing additionally requires
+   repository Issues read and write permission.
 2. [Setup](../configuration/03-setup.md): configure Actions variables, the private-key secret,
    repository settings and run the workflow.
 3. [Compliance policy](../configuration/04-policy.md): understand default check policies and
