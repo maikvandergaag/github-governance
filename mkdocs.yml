@@ -1,0 +1,22 @@
+site_name: GitHub Governance
+docs_dir: pages-src
+site_dir: pages-site
+nav:
+  - Home: README.md
+  - Getting started: docs/repo/SETUP.md
+  - Configuration handbook:
+      - Introduction: docs/configuration/README.md
+      - Overview: docs/configuration/01-overview.md
+      - Prerequisites and access: docs/configuration/02-prerequisites-and-access.md
+      - Setup: docs/configuration/03-setup.md
+      - Compliance policy: docs/configuration/04-policy.md
+      - Exemptions: docs/configuration/05-exemptions.md
+      - Adding checks: docs/configuration/06-adding-checks.md
+      - Operations and troubleshooting: docs/configuration/07-operations-and-troubleshooting.md
+      - Policy reference: docs/configuration/reference/policy-schema.md
+      - Check manifest reference: docs/configuration/reference/check-manifest.md
+      - Permissions: docs/configuration/reference/permissions.md
+  - Check catalog: docs/checks.md
+  - Example: docs/example.md
+  - Repository guide: docs/repo/README.md
+  - Upstream synchronization: docs/repo/UPSTREAM_SYNC.md
