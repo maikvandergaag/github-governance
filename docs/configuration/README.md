@@ -1,6 +1,6 @@
 # Configuration handbook
 
-[Repository guide](../repo/README.md) · [Generated documentation](../enterprise/README.md) · [Home](../../README.md)
+[Repository guide](../repo/README.md) · [Generated documentation](../output/README.md) · [Home](../../README.md)
 
 This handbook explains how to configure, operate and extend the GitHub Enterprise documentation
 and compliance workflow. It is organized as a book: read the chapters in order for a first setup,

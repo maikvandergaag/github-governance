@@ -41,7 +41,7 @@ env:
   RUN_COMPLIANCE: ${{ github.event_name == 'schedule' || inputs.compliance }}
   RUN_SARIF: ${{ github.event_name == 'schedule' || inputs.publish_sarif }}
   ENTERPRISE_API_URL: ${{ vars.ENTERPRISE_API_URL || 'https://api.github.com' }}
-  OUTPUT_PATH: docs/enterprise
+  OUTPUT_PATH: docs/output
   MODULE_PATH: ./src/GitHubGovernance/GitHubGovernance.psd1
 
 jobs:
@@ -50,7 +50,7 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
-    # Environment secrets (DOCS_APP_PRIVATE_KEY) are only released to runs on the branches the
+    # Environment secrets (GH_APP_PRIVATE_KEY) are only released to runs on the branches the
     # environment allows (main). See docs/configuration/03-setup.md.
     environment: enterprise-compliance
     outputs:
@@ -64,8 +64,8 @@ jobs:
       - name: Validate configuration
         shell: pwsh
         env:
-          GH_APP_CLIENT_ID: ${{ vars.DOCS_APP_CLIENT_ID }}
-          GH_APP_PRIVATE_KEY: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+          GH_APP_CLIENT_ID: ${{ vars.GH_APP_CLIENT_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
@@ -86,8 +86,8 @@ jobs:
           if ($env:ACCOUNT_SCOPE -in 'organization', 'user' -and [string]::IsNullOrWhiteSpace($env:ACCOUNT_LOGIN)) {
             $missing.Add('ACCOUNT_LOGIN')
           }
-          if ([string]::IsNullOrWhiteSpace($env:GH_APP_CLIENT_ID)) { $missing.Add('DOCS_APP_CLIENT_ID') }
-          if ([string]::IsNullOrWhiteSpace($env:GH_APP_PRIVATE_KEY)) { $missing.Add('DOCS_APP_PRIVATE_KEY environment secret') }
+          if ([string]::IsNullOrWhiteSpace($env:GH_APP_CLIENT_ID)) { $missing.Add('GH_APP_CLIENT_ID') }
+          if ([string]::IsNullOrWhiteSpace($env:GH_APP_PRIVATE_KEY)) { $missing.Add('GH_APP_PRIVATE_KEY environment secret') }
           if ([string]::IsNullOrWhiteSpace($env:GITHUB_TOKEN)) { $missing.Add('GITHUB_TOKEN') }
           if ($missing.Count) {
             throw "Missing required configuration: $($missing -join ', '). See docs/repo/SETUP.md."
@@ -103,8 +103,8 @@ jobs:
         if: ${{ env.RUN_DOCUMENTATION == 'true' || env.RUN_COMPLIANCE == 'true' }}
         shell: pwsh
         env:
-          GH_APP_CLIENT_ID: ${{ vars.DOCS_APP_CLIENT_ID }}
-          GH_APP_PRIVATE_KEY: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+          GH_APP_CLIENT_ID: ${{ vars.GH_APP_CLIENT_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
         run: |
           $ErrorActionPreference = 'Stop'
           Import-Module $env:MODULE_PATH -Force
@@ -150,8 +150,8 @@ jobs:
         shell: pwsh
         env:
           # GitHub App installed on the enterprise and every organization.
-          GH_APP_CLIENT_ID: ${{ vars.DOCS_APP_CLIENT_ID }}
-          GH_APP_PRIVATE_KEY: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+          GH_APP_CLIENT_ID: ${{ vars.GH_APP_CLIENT_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
         run: |
           Import-Module $env:MODULE_PATH -Force
           $scope = switch ($env:ACCOUNT_SCOPE) {
@@ -210,8 +210,8 @@ jobs:
         id: evaluate
         shell: pwsh
         env:
-          GH_APP_CLIENT_ID: ${{ vars.DOCS_APP_CLIENT_ID }}
-          GH_APP_PRIVATE_KEY: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+          GH_APP_CLIENT_ID: ${{ vars.GH_APP_CLIENT_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
         run: |
           Import-Module $env:MODULE_PATH -Force
           $scope = switch ($env:ACCOUNT_SCOPE) {

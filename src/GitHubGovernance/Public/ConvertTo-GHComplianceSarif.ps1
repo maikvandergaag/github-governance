@@ -43,7 +43,7 @@ function ConvertTo-GHComplianceSarif {
         $Findings = $collected.ToArray()
         # Where each check is visible in the generated docs: page (relative to the target's docs folder) + line regex.
         $CheckAnchors = @{
-            # Enterprise (docs/enterprise/enterprise/)
+            # Enterprise (docs/output/enterprise/)
             'enterprise.2fa-required' = @('README.md', '^\| 2FA required \|')
             'enterprise.users-without-2fa' = @('README.md', '^\| Affiliated users without 2FA \|')
             'enterprise.sso-configured' = @('README.md', '^## Authentication and access')
@@ -55,7 +55,7 @@ function ConvertTo-GHComplianceSarif {
             'enterprise.ip-allow-list' = @('README.md', '^\| IP allow list \|')
             'enterprise.max-owners' = @('README.md', '^## Enterprise owners')
             'enterprise.actions-restricted' = @('actions.md', '^\| Allowed actions \|')
-            # Organization (docs/enterprise/organizations/<org>/)
+            # Organization (docs/output/organizations/<org>/)
             'org.2fa-required' = @('README.md', '^\| 2FA required \|')
             'org.default-permission' = @('README.md', '^\| Default repository permission \|')
             'org.no-public-repo-creation' = @('README.md', '^\| Members can create public repos \|')

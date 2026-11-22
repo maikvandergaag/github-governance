@@ -328,18 +328,17 @@ try {
     Assert-That ($err -and "$err" -like '*not installed*') 'Org without App installation gives a clear error'
 
     Write-Host "`nExport"
-    Export-GHDocumentation -OutputPath 'docs/enterprise' -WarningAction SilentlyContinue 6>$null
-    $expected = 'docs/enterprise/README.md', 'docs/enterprise/enterprise/README.md', 'docs/enterprise/enterprise/rulesets.md',
-    'docs/enterprise/organizations/org-a/README.md', 'docs/enterprise/organizations/org-a/codeowners.md',
-    'docs/enterprise/organizations/org-a/repositories.md', 'docs/enterprise/_data/enterprise.json', 'docs/enterprise/_data/organizations/org-a.json'
+    Export-GHDocumentation -OutputPath 'docs/output' -WarningAction SilentlyContinue 6>$null
+    $expected = 'docs/output/README.md', 'docs/output/enterprise/README.md', 'docs/output/enterprise/rulesets.md',
+    'docs/output/organizations/org-a/README.md', 'docs/output/organizations/org-a/codeowners.md',
+    'docs/output/organizations/org-a/repositories.md', 'docs/output/_data/enterprise.json', 'docs/output/_data/organizations/org-a.json'
     Assert-That (@($expected | Where-Object { -not (Test-Path $_) }).Count -eq 0) 'Expected folder structure is generated'
-    Assert-That ((Get-Content docs/enterprise/README.md -Raw) -match 'Configuration handbook' -and
-        (Get-Content docs/enterprise/enterprise/README.md -Raw) -match 'Configuration handbook' -and
-        (Get-Content docs/enterprise/organizations/org-a/README.md -Raw) -match 'Configuration handbook') 'Generated documentation links to the configuration handbook'
-    Assert-That ((Get-Content docs/enterprise/README.md -Raw) -match 'not installed on: `org:org-c`') 'Index warns about organizations without the App'
-    Assert-That (-not (Select-String -Path 'docs/enterprise/_data/organizations/*.json' -Pattern 'SECRETVALUE|\*\*\*\*' -Quiet)) 'No secret values in snapshots'
-
-    $broken = foreach ($md in Get-ChildItem docs/enterprise -Recurse -Filter *.md) {
+    Assert-That ((Get-Content docs/output/README.md -Raw) -match 'Configuration handbook' -and
+        (Get-Content docs/output/enterprise/README.md -Raw) -match 'Configuration handbook' -and
+        (Get-Content docs/output/organizations/org-a/README.md -Raw) -match 'Configuration handbook') 'Generated documentation links to the configuration handbook'
+    Assert-That ((Get-Content docs/output/README.md -Raw) -match 'not installed on: `org:org-c`') 'Index warns about organizations without the App'
+    Assert-That (-not (Select-String -Path 'docs/output/_data/organizations/*.json' -Pattern 'SECRETVALUE|\*\*\*\*' -Quiet)) 'No secret values in snapshots'
+    $broken = foreach ($md in Get-ChildItem docs/output -Recurse -Filter *.md) {
         foreach ($m in [regex]::Matches((Get-Content $md.FullName -Raw), '\]\(([^)#:]+\.md)\)')) {
             if ($m.Groups[1].Value -like '*compliance/README.md') {
                 continue
@@ -352,8 +351,8 @@ try {
     Assert-That (@($broken).Count -eq 0) "All relative links resolve $(if ($broken) { ": $($broken -join '; ')" })"
 
     Write-Host "`nCompliance"
-    $findings = Test-GHCompliance -DataPath docs/enterprise/_data -PolicyPath compliance/policy.json -OutputFile findings.json -ReportFile docs/enterprise/compliance/README.md 6>$null
-    Assert-That ((Get-Content docs/enterprise/compliance/README.md -Raw) -match 'Configuration handbook') 'Generated compliance report links to the configuration handbook'
+    $findings = Test-GHCompliance -DataPath docs/output/_data -PolicyPath compliance/policy.json -OutputFile findings.json -ReportFile docs/output/compliance/README.md 6>$null
+    Assert-That ((Get-Content docs/output/compliance/README.md -Raw) -match 'Configuration handbook') 'Generated compliance report links to the configuration handbook'
     $byId = @{}; $findings | ForEach-Object { $byId[$_.id] = $_ }
     $failed = { param($id) @($byId[$id].failures | ForEach-Object { $_.check }) }
     Assert-That ('enterprise.2fa-required' -in (& $failed 'enterprise:contoso')) 'Enterprise NO_POLICY 2FA is a finding'
@@ -372,14 +371,14 @@ try {
         'repo.description-present' -notin (& $failed 'org-a/api')) 'Snapshot checks distinguish absent and present repository descriptions'
     Assert-That (-not $byId.ContainsKey('org-a/old')) 'Archived repositories are not evaluated'
     Assert-That (@($byId['org-c'].notEvaluated).Count -gt 0 -and @($byId['org-c'].failures).Count -eq 0) 'Org without App: checks not evaluated, no false findings'
-    Assert-That ((Get-Content docs/enterprise/compliance/README.md -Raw) -match '## By requirement') 'Compliance report is written'
+    Assert-That ((Get-Content docs/output/compliance/README.md -Raw) -match '## By requirement') 'Compliance report is written'
 
     Write-Host "`nLive Pester compliance"
     $tokensBefore = @($global:GHESmokeCalls | Where-Object { $_ -like 'Post app/installations/*/access_tokens*' }).Count
     $rulesBefore = @($global:GHESmokeCalls | Where-Object { $_ -like 'Get repos/org-a/api/rules/branches/main*' }).Count
     $global:LASTEXITCODE = 0
-    $live = Test-GHCompliance -UsePester -DataPath docs/enterprise/_data -PolicyPath compliance/policy.json `
-        -OutputFile live-findings.json -ReportFile docs/enterprise/compliance/README.md -WarningAction SilentlyContinue 6>$null
+    $live = Test-GHCompliance -UsePester -DataPath docs/output/_data -PolicyPath compliance/policy.json `
+        -OutputFile live-findings.json -ReportFile docs/output/compliance/README.md -WarningAction SilentlyContinue 6>$null
     Assert-That ($global:LASTEXITCODE -eq 0) 'Expected compliance failures do not set a failing process exit code'
     $liveById = @{}; $live | ForEach-Object { $liveById[$_.id] = $_ }
     Assert-That (@($liveById['enterprise:contoso'].failures | Where-Object check -eq 'enterprise.2fa-required').Count -eq 1) 'Live enterprise Pester failure is reported'
@@ -418,7 +417,7 @@ try {
     $policy.exemptions | Add-Member -NotePropertyName 'org-a/web' -NotePropertyValue @('repo.not-public')
     $policy | ConvertTo-Json -Depth 10 | Set-Content compliance/policy-custom.json
     $global:LASTEXITCODE = 73
-    $custom = Test-GHCompliance -UsePester -DataPath docs/enterprise/_data -PolicyPath compliance/policy-custom.json -SkipCodeOwners -WarningAction SilentlyContinue 6>$null
+    $custom = Test-GHCompliance -UsePester -DataPath docs/output/_data -PolicyPath compliance/policy-custom.json -SkipCodeOwners -WarningAction SilentlyContinue 6>$null
     Assert-That ($global:LASTEXITCODE -eq 73) 'Pester execution preserves the caller exit code'
     $global:LASTEXITCODE = 0
     $customById = @{}; $custom | ForEach-Object { $customById[$_.id] = $_ }
@@ -428,7 +427,7 @@ try {
     $global:GHESmokeErrorPath = 'orgs/org-a/actions/permissions'
     $errorRaised = $false
     try {
-        Test-GHCompliance -UsePester -DataPath docs/enterprise/_data -PolicyPath compliance/policy.json -OutputFile failed-findings.json 6>$null | Out-Null
+        Test-GHCompliance -UsePester -DataPath docs/output/_data -PolicyPath compliance/policy.json -OutputFile failed-findings.json 6>$null | Out-Null
     } catch {
         $errorRaised = $_.Exception.Message -match 'Fixture API failure'
     } finally {
@@ -517,7 +516,7 @@ Describe 'Broken check' {
             }
         }
     } (Join-Path $root 'tests')
-    $allTarget = [pscustomobject]@{ id = 'org-a/web'; type = 'repo'; org = 'org-a'; repo = 'web'; docs = 'docs/enterprise/organizations/org-a/repositories.md'; failures = $allChecks }
+    $allTarget = [pscustomobject]@{ id = 'org-a/web'; type = 'repo'; org = 'org-a'; repo = 'web'; docs = 'docs/output/organizations/org-a/repositories.md'; failures = $allChecks }
     $allTarget | ConvertTo-GHComplianceSarif -OutputFile all-checks.sarif 6>$null
     $allRules = (Get-Content all-checks.sarif -Raw | ConvertFrom-Json).runs[0].tool.driver.rules
     Assert-That ($allRules.Count -eq $allChecks.Count -and @($allRules | Where-Object { $_.help.markdown -notmatch '## Potential impact' }).Count -eq 0) 'Every compliance rule explains its potential impact'
@@ -595,7 +594,7 @@ Describe 'Broken check' {
     Connect-GHGovernance -Enterprise contoso -Token 'fixture-pat' | Out-Null
     $patRejected = $false
     try {
-        Test-GHCompliance -UsePester -DataPath docs/enterprise/_data -PolicyPath compliance/policy.json 6>$null | Out-Null
+        Test-GHCompliance -UsePester -DataPath docs/output/_data -PolicyPath compliance/policy.json 6>$null | Out-Null
     } catch {
         $patRejected = $_.Exception.Message -match 'require a GitHub App connection'
     }
