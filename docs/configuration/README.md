@@ -22,6 +22,7 @@ jump to a topic from the contents below.
 - [Policy file reference](reference/policy-schema.md)
 - [Check manifest reference](reference/check-manifest.md)
 - [GitHub App permissions](reference/permissions.md)
+- [Optional upstream synchronization](../repo/UPSTREAM_SYNC.md)
 
 ## Choose a path
 
@@ -31,5 +32,5 @@ jump to a topic from the contents below.
 
 The [repository guide](../repo/README.md) describes the generated documentation and compliance
 outputs. The [setup guide](../repo/SETUP.md) is a short entry point to this handbook. Generated
-documentation is proposed or committed under `docs/enterprise/` when documentation is selected and
+documentation is proposed or committed under `docs/output/` when documentation is selected and
 a run succeeds; it is not present in a fresh clone.

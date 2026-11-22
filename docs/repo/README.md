@@ -55,7 +55,7 @@ For CODEOWNERS checks and nonempty organization rulesets, snapshots created befo
 collection-completeness markers were added are reported as not evaluated; regenerate the snapshots
 to evaluate those checks.
 
-It writes a findings report to `docs/enterprise/compliance/README.md`
+It writes a findings report to `docs/output/compliance/README.md`
 (proposed or committed when documentation is selected). `Sync-GHComplianceIssue` manages issues in **this** repository:
 
 

@@ -24,8 +24,8 @@ closed solely because a check could not be evaluated. See
 [outputs and lifecycle](configuration/07-operations-and-troubleshooting.md#outputs-and-lifecycle).
 
 After a documentation PR is merged (or documentation is published directly), the repository contains
-an inventory under `docs/enterprise/` and, when compliance is selected, a report at
-`docs/enterprise/compliance/README.md`. These files may contain sensitive metadata and should be
+an inventory under `docs/output/` and, when compliance is selected, a report at
+`docs/output/compliance/README.md`. These files may contain sensitive metadata and should be
 kept in a private or internal repository.
 
 To run the implementation against a fake GitHub API without credentials, use the

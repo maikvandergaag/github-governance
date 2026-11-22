@@ -4,6 +4,8 @@
 
 This chapter sets up the repository workflow. Read [Prerequisites and access](02-prerequisites-and-access.md)
 first to create and install the reader App.
+Check that your copy's [ignore rules permit generated documentation](../repo/SETUP.md#allow-generated-documentation-in-git)
+before running the publishing workflow.
 
 ## Actions variables and secrets
 
@@ -52,12 +54,15 @@ and repository policies permit the chosen credential and workflow events.
 1. Review [Compliance policy](04-policy.md) and [Exemptions](05-exemptions.md).
 2. Start **Actions > Check - GitHub Enterprise > Run workflow** and select the account mode and desired
    actions. The default is enterprise mode with documentation, tests and SARIF enabled.
-3. Review `docs/output/README.md` for missing App installations and unavailable sections.
+3. Review and merge the documentation pull request when using the default publishing mode. Then
+   review `docs/output/README.md` for missing App installations and unavailable sections.
 4. Review `docs/output/compliance/README.md`, issues and **Security > Code scanning** for findings.
 5. Adjust policy or exemptions and run the workflow again.
 
 The issue sync creates at most 150 new issues per run. Subsequent runs continue with remaining
 findings.
+Scheduled runs enable documentation, compliance and SARIF. If code scanning is unavailable, manual
+runs can disable SARIF, but the scheduled workflow must be adapted before enabling its schedule.
 
 The workflow maintains a managed branch per target branch and updates its open documentation PR.
 Do not add manual commits to that branch: the workflow refuses to overwrite an unmanaged or modified
