@@ -88,6 +88,10 @@ from `main`. It publishes the toolkit documentation and check guidance, not the 
 `docs/output/` inventory or snapshots. Review Pages visibility and access controls before
 enabling it, particularly in copies containing organization-specific documentation.
 The build checks links and anchors between the generated pages before deployment.
+New pages under `docs/` and tracked files linked from the documentation are included automatically.
+Files under `docs/output/`, `compliance/`, `src/`, and `.github/` are not automatically published;
+only check `README.md` and `issue.md` files are staged from `tests/`. Review linked files for
+sensitive content.
 
 ## Community
 
