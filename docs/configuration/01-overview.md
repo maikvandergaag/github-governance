@@ -6,6 +6,11 @@ This repository collects configuration from a GitHub Enterprise Cloud enterprise
 organization, or a personal account, renders it as Markdown, evaluates compliance requirements and
 publishes findings. The workflow runs weekly and can also be started manually.
 
+GitHub Governance is a community toolkit, not a compliance certification. Findings reflect the
+configured checks and accessible GitHub data; missing data is reported as unavailable or not
+evaluated rather than assumed compliant. See the [illustrative example](../example.md) and
+[coverage notes](../repo/README.md#notes).
+
 ```mermaid
 flowchart LR
     App[Read-only GitHub App] --> Collect[Collect account and repository data]
@@ -46,4 +51,4 @@ enterprise, organization or repository.
 
 - [Prerequisites and access](02-prerequisites-and-access.md)
 - [Repository guide](../repo/README.md)
-- [Generated enterprise documentation](../output/README.md)
+- [Generated documentation layout](07-operations-and-troubleshooting.md#generated-documentation-layout)

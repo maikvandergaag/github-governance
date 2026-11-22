@@ -126,7 +126,14 @@ Describe 'Authenticated GitHub pagination' {
             notEvaluated = @()
         }
         Sync-GHComplianceIssue -Findings $target -Repository 'owner/docs' -Token 'fixture' -ApiBaseUrl $script:base 6>$null
-        $calls = @(Receive-Job $script:server -Keep | Where-Object { $_ -isnot [string] })
+        $wait = [System.Diagnostics.Stopwatch]::StartNew()
+        do {
+            $calls = @(Receive-Job $script:server -Keep | Where-Object { $_ -isnot [string] })
+            if (@($calls | Where-Object { $_.path -eq '/repos/owner/docs/issues/41' -and $_.method -eq 'PATCH' }).Count -gt 0) {
+                break
+            }
+            Start-Sleep -Milliseconds 25
+        } while ($wait.Elapsed.TotalSeconds -lt 2)
         @($calls | Where-Object { $_.path -eq '/repos/owner/docs/issues' -and $_.page -eq '2' -and $_.authenticated }).Count | Should -Be 1
         @($calls | Where-Object { $_.path -eq '/repos/owner/docs/issues/41' -and $_.method -eq 'PATCH' }).Count | Should -Be 1
         @($calls | Where-Object { $_.path -eq '/repos/owner/docs/issues' -and $_.method -eq 'POST' }).Count | Should -Be 0
