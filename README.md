@@ -85,7 +85,9 @@ pwsh ./tests/Invoke-SmokeTest.ps1
 Use the repository's GitHub issues to ask for help, report bugs, or suggest checks and improvements.
 See [CONTRIBUTING.md](CONTRIBUTING.md) to contribute and our
 [code of conduct](CODE_OF_CONDUCT.md) for community expectations. Report security vulnerabilities
-privately as described in [SECURITY.md](SECURITY.md). No support response time is guaranteed.
+privately as described in [SECURITY.md](SECURITY.md). See [support boundaries](SUPPORT.md),
+[project roadmap](ROADMAP.md), [maintainer triage guidance](docs/governance/maintainers.md), and
+[decision records](docs/decisions/README.md). No support response time is guaranteed.
 
 ## License
 
