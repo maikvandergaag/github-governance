@@ -4,7 +4,7 @@
 
 ## Workflow
 
-The `Check - GitHub Enterprise` workflow runs weekly and supports manual dispatch:
+The `GitHub Governance Assessment` workflow runs weekly and supports manual dispatch:
 
 1. `validate` checks selections, configuration and authentication.
 2. `inventory` collects snapshots and generates documentation.
@@ -27,7 +27,7 @@ selected, no collection runs. The
 `documentation-patch` artifact transfers inventory to Pester, and `compliance-findings` contains
 findings and the documentation patch when compliance runs.
 
-Review the [workflow definition](../../.github/workflows/document-enterprise.yml) for exact triggers
+Review the [workflow definition](../../.github/workflows/governance-assessment.yml) for exact triggers
 and token permissions.
 
 ## Generated documentation layout

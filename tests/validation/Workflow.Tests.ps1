@@ -1,6 +1,6 @@
 BeforeAll {
     Import-Module "$PSScriptRoot/../../src/GitHubGovernance/GitHubGovernance.psd1" -Force
-    $workflow = Get-Content "$PSScriptRoot/../../.github/workflows/document-enterprise.yml" -Raw
+    $workflow = Get-Content "$PSScriptRoot/../../.github/workflows/governance-assessment.yml" -Raw
     $validate = [regex]::Match($workflow, '(?ms)^  validate:\r?\n.*?(?=^  inventory:)').Value
     $inventory = [regex]::Match($workflow, '(?ms)^  inventory:\r?\n.*?(?=^  pester:)').Value
     $pester = [regex]::Match($workflow, '(?ms)^  pester:\r?\n.*?(?=^  commit_docs:)').Value

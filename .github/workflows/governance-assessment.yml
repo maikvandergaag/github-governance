@@ -1,4 +1,4 @@
-name: Check - GitHub Enterprise
+name: GitHub Governance Assessment
 
 on:
   schedule:
@@ -38,7 +38,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: document-enterprise
+  group: governance-assessment
   cancel-in-progress: false
 
 env:
