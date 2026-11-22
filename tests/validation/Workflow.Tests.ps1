@@ -35,6 +35,7 @@ BeforeAll {
             GH_APP_CLIENT_ID = 'client'; GH_APP_PRIVATE_KEY = 'fixture-key'; GITHUB_TOKEN = 'fixture-token'
             ENTERPRISE_API_URL = 'https://api.github.com'
             RUN_DOCUMENTATION = 'true'; RUN_COMPLIANCE = 'true'; RUN_SARIF = 'true'
+            DOCS_PUBLISH_MODE = 'pull_request'
             MODULE_PATH = './src/GitHubGovernance/GitHubGovernance.psd1'
         }
         foreach ($key in $Overrides.Keys) { $values[$key] = $Overrides[$key] }
@@ -83,6 +84,8 @@ Describe 'Compliance workflow stages' {
             Should -Throw '*HTTPS URL*'
         { Invoke-WorkflowStepFixture $script @{ ACCOUNT_SCOPE = 'invalid' } } |
             Should -Throw '*Invalid account mode*'
+        { Invoke-WorkflowStepFixture $script @{ DOCS_PUBLISH_MODE = 'invalid' } } |
+            Should -Throw '*DOCS_PUBLISH_MODE*'
         { Invoke-WorkflowStepFixture $script @{ RUN_COMPLIANCE = 'false'; RUN_SARIF = 'true' } } |
             Should -Throw '*requires compliance tests*'
         { Invoke-WorkflowStepFixture $script @{ RUN_DOCUMENTATION = 'false'; RUN_COMPLIANCE = 'false'; RUN_SARIF = 'false'; GH_APP_PRIVATE_KEY = '' } } |
@@ -271,7 +274,7 @@ Describe 'Compliance workflow stages' {
         if ($LASTEXITCODE -ne 0) { throw 'Could not create the commit test fixture.' }
         Set-Content "$source/docs/output/page.md" 'new page'
 
-        $keys = @('OUTPUT_PATH', 'RUN_COMPLIANCE', 'GITHUB_OUTPUT', 'GITHUB_STEP_SUMMARY')
+        $keys = @('OUTPUT_PATH', 'RUN_COMPLIANCE', 'DOCS_PUBLISH_MODE', 'GITHUB_OUTPUT', 'GITHUB_STEP_SUMMARY')
         $previous = @{}
         foreach ($key in $keys) { $previous[$key] = [Environment]::GetEnvironmentVariable($key) }
         try {
@@ -283,13 +286,98 @@ Describe 'Compliance workflow stages' {
             Copy-Item "$source/generated-docs.patch" "$destination/generated-docs.patch"
             Copy-Item "$source/enterprise-docs.patch" "$destination/enterprise-docs.patch"
             $env:RUN_COMPLIANCE = $Mode
+            $env:DOCS_PUBLISH_MODE = 'direct'
             $env:GITHUB_OUTPUT = Join-Path $TestDrive "output-$Mode"
             $env:GITHUB_STEP_SUMMARY = Join-Path $TestDrive "summary-$Mode"
             Invoke-BashStep $destination (Get-BashStepScript $commitDocs 'Commit changes')
             Get-Content "$destination/docs/output/page.md" | Should -Be 'new page'
             Get-Content "$destination/docs/output/compliance/README.md" | Should -Be $ExpectedReport
             $sha = (& git -C $destination rev-parse HEAD).Trim()
-            @(Get-Content $env:GITHUB_OUTPUT)[-1] | Should -Be "sha=$sha"
+            Get-Content $env:GITHUB_OUTPUT | Should -Contain "sha=$sha"
+            @(Get-Content $env:GITHUB_OUTPUT)[-1] | Should -Be 'docs_committed=true'
+        } finally {
+            foreach ($key in $keys) { [Environment]::SetEnvironmentVariable($key, $previous[$key]) }
+        }
+    }
+
+    It 'creates and updates a managed documentation branch without overwriting other work' {
+        $source = Join-Path $TestDrive 'pr-source'
+        $remote = Join-Path $TestDrive 'pr-remote.git'
+        $destination = Join-Path $TestDrive 'pr-destination'
+        $bin = Join-Path $TestDrive 'pr-bin'
+        New-Item -ItemType Directory -Path "$source/docs/enterprise", $bin -Force | Out-Null
+        & git -C $source init -q
+        Set-Content "$source/docs/enterprise/page.md" 'old page'
+        & git -C $source add .
+        & git -C $source -c user.name=Fixture -c user.email=fixture@example.invalid commit -qm fixture
+        & git clone --bare -q $source $remote
+        & git clone -q $remote $destination
+        if ($LASTEXITCODE -ne 0) { throw 'Could not create the PR test fixture.' }
+        $base = (& git -C $source branch --show-current).Trim()
+        $baseSha = (& git -C $source rev-parse HEAD).Trim()
+        & git -C $destination checkout -q --detach $baseSha
+        $gh = @'
+#!/usr/bin/env bash
+set -e
+echo "$*" >> "$GH_CALLS"
+case "$1 $2" in
+  "pr list") if [ -f "$GH_PR" ]; then echo 42; fi ;;
+  "pr view") echo '<!-- github-governance:managed-docs -->' ;;
+  "pr create") touch "$GH_PR" ;;
+  "pr close") rm "$GH_PR" ;;
+  *) exit 1 ;;
+esac
+'@
+        [IO.File]::WriteAllText("$bin/gh", $gh.Replace("`r`n", "`n") + "`n")
+        & chmod +x "$bin/gh"
+        $keys = @('PATH', 'OUTPUT_PATH', 'RUN_COMPLIANCE', 'DOCS_PUBLISH_MODE', 'GITHUB_REF_NAME', 'GITHUB_OUTPUT', 'GITHUB_STEP_SUMMARY', 'GH_CALLS', 'GH_PR')
+        $previous = @{}
+        foreach ($key in $keys) { $previous[$key] = [Environment]::GetEnvironmentVariable($key) }
+        try {
+            $env:PATH = "$bin$([IO.Path]::PathSeparator)$env:PATH"
+            $env:OUTPUT_PATH = 'docs/enterprise'
+            $env:RUN_COMPLIANCE = 'false'
+            $env:DOCS_PUBLISH_MODE = 'pull_request'
+            $env:GITHUB_REF_NAME = $base
+            $env:GITHUB_OUTPUT = Join-Path $TestDrive 'pr-output'
+            $env:GITHUB_STEP_SUMMARY = Join-Path $TestDrive 'pr-summary'
+            $env:GH_CALLS = Join-Path $TestDrive 'pr-gh-calls'
+            $env:GH_PR = Join-Path $TestDrive 'pr-open'
+            $publish = Get-BashStepScript $commitDocs 'Commit changes'
+            Set-Content "$source/docs/enterprise/page.md" 'first inventory'
+            Invoke-BashStep $source (Get-BashStepScript $inventory 'Prepare documentation patch')
+            Copy-Item "$source/generated-docs.patch" "$destination/generated-docs.patch"
+            Invoke-BashStep $destination $publish
+            $branchHash = (& bash -c 'printf %s "$GITHUB_REF_NAME" | git hash-object --stdin').Trim()
+            $branch = "github-governance/docs-$branchHash"
+            (& git --git-dir=$remote rev-parse "refs/heads/$base").Trim() | Should -Be $baseSha
+            (& git --git-dir=$remote show "refs/heads/${branch}:docs/enterprise/page.md").Trim() | Should -Be 'first inventory'
+            Get-Content $env:GITHUB_OUTPUT | Should -Contain 'docs_committed=false'
+            @(Get-Content $env:GH_CALLS | Where-Object { $_ -like 'pr create*' }).Count | Should -Be 1
+
+            & git -C $destination checkout -q --detach $baseSha
+            Set-Content "$source/docs/enterprise/page.md" 'second inventory'
+            Invoke-BashStep $source (Get-BashStepScript $inventory 'Prepare documentation patch')
+            Copy-Item "$source/generated-docs.patch" "$destination/generated-docs.patch" -Force
+            Invoke-BashStep $destination $publish
+            (& git --git-dir=$remote show "refs/heads/${branch}:docs/enterprise/page.md").Trim() | Should -Be 'second inventory'
+            @(Get-Content $env:GH_CALLS | Where-Object { $_ -like 'pr create*' }).Count | Should -Be 1
+
+            & git -C $destination checkout -q --detach $baseSha
+            [IO.File]::WriteAllText("$destination/generated-docs.patch", '')
+            Invoke-BashStep $destination $publish
+            @(Get-Content $env:GH_CALLS | Where-Object { $_ -like 'pr close 42*' }).Count | Should -Be 1
+
+            & git -C $destination fetch -q origin "refs/heads/${branch}:refs/heads/fixture-branch"
+            & git -C $destination checkout -q fixture-branch
+            Set-Content "$destination/unrelated.txt" 'user work'
+            & git -C $destination add unrelated.txt
+            & git -C $destination -c user.name=User -c user.email=user@example.invalid commit -qm 'user change'
+            & git -C $destination push -q origin "HEAD:refs/heads/$branch"
+            & git -C $destination checkout -q --detach $baseSha
+            Copy-Item "$source/generated-docs.patch" "$destination/generated-docs.patch" -Force
+            { Invoke-BashStep $destination $publish } | Should -Throw '*Workflow step failed*'
+            (& git --git-dir=$remote show "refs/heads/${branch}:unrelated.txt").Trim() | Should -Be 'user work'
         } finally {
             foreach ($key in $keys) { [Environment]::SetEnvironmentVariable($key, $previous[$key]) }
         }
@@ -299,6 +387,7 @@ Describe 'Compliance workflow stages' {
         $commitDocs | Should -Match 'echo "sha=\$\(git rev-parse HEAD\)" >> "\$GITHUB_OUTPUT"'
         $sarif | Should -Match 'sha: \$\{\{ needs\.commit_docs\.outputs\.sha \|\| github\.sha \}\}'
         $sarif | Should -Match 'UsePolicyLocations:'
+        $sarif | Should -Match 'DOCS_COMMITTED: \$\{\{ needs\.commit_docs\.outputs\.docs_committed \}\}'
         $sarif | Should -Match '(?m)^\s+name: compliance-sarif\r?$'
         $sarif | Should -Match 'results were uploaded to Security > Code scanning'
     }

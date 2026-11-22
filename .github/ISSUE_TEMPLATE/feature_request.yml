@@ -1,0 +1,31 @@
+name: Feature request
+description: Suggest an improvement or a new governance check.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem should this solve?
+      description: Describe the governance task or user need.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: Suggest the behavior or outcome you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: textarea
+    id: scope
+    attributes:
+      label: Relevant scope or GitHub API
+      description: If known, identify enterprise, organization, repository, or endpoint requirements.
+    validations:
+      required: false

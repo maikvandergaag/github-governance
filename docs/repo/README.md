@@ -1,10 +1,12 @@
 # Repository guide
 
-[Home](../../README.md) · [Configuration handbook](../configuration/README.md) · [Generated documentation](../output/README.md) · [Setup guide](SETUP.md)
+[Home](../../README.md) · [Configuration handbook](../configuration/README.md) · [Example](../example.md) · [Setup guide](SETUP.md)
+
 
 Automatically generates Markdown documentation of a GitHub Enterprise Cloud environment,
-a standalone organization, or a personal account and commits it to this repository on a weekly schedule.
-Git history becomes the change log of your configuration.
+a standalone organization, or a personal account on a weekly schedule. By default, updates are
+proposed in a pull request; direct publishing is configurable. Git history becomes the change log
+of merged configuration updates.
 
 ## What is documented
 
@@ -33,6 +35,10 @@ docs/output/
 └── _data/                 raw JSON snapshots (used to discover compliance targets)
 ```
 
+The generated directory appears on the target branch after a documentation PR is merged (or after
+a successful direct publication); it is not present in a fresh clone. The
+[illustrative example](../example.md) is available before setup.
+
 Sections the credentials cannot read are rendered as `Not available`; the run does not fail.
 Run the commands in this guide from the repository root.
 
@@ -48,8 +54,10 @@ under `tests/` (or the path supplied with `-TestsPath`).
 For CODEOWNERS checks and nonempty organization rulesets, snapshots created before
 collection-completeness markers were added are reported as not evaluated; regenerate the snapshots
 to evaluate those checks.
+
 It writes a findings report to `docs/output/compliance/README.md`
-(committed when documentation is selected). `Sync-GHComplianceIssue` manages issues in **this** repository:
+(proposed or committed when documentation is selected). `Sync-GHComplianceIssue` manages issues in **this** repository:
+
 
 - One issue per failed check and affected enterprise, organization or repository, labelled `compliance`, `compliance:enterprise|org|repo` and the check's `severity:<level>`.
 - Issue text comes from `tests/<check-id>/issue.md`. Templates support `{{target}}`, `{{target_url}}`, `{{docs_url}}`, `{{check}}`, `{{severity}}` and `{{finding}}`; the sync adds hidden markers for tracking.
@@ -61,37 +69,11 @@ It writes a findings report to `docs/output/compliance/README.md`
 - Mutating issue requests are paced; GitHub rate-limit responses are retried with bounded backoff. If the limit persists, the sync fails and can be rerun after it resets.
 - Use the local dry run below to see what would happen without touching issues.
 
-Checks are discovered from `tests/<check-id>/check.json`; the table below is the built-in catalog.
+Checks are discovered from `tests/<check-id>/check.json`; see the
+[governance check catalog](../checks.md) for all built-in checks, defaults and detailed guidance.
 Each discovered check also needs `<check-id>.Tests.ps1`, `policy.json` and `issue.md` in its folder.
 The local `policy.json` supplies the default enabled state, severity and parameters. Individual live
 tests require a connected GitHub App, not a PAT.
-
-| Check | Level | Requirement |
-| --- | --- | --- |
-| `enterprise.2fa-required` | enterprise | 2FA required, enforced at enterprise level |
-| `enterprise.users-without-2fa` | enterprise | No affiliated users without 2FA |
-| `enterprise.sso-configured` | enterprise | SAML or OIDC configured |
-| `enterprise.default-permission-policy` | enterprise | Base permission enforced (default: none/read) |
-| `enterprise.repo-creation-policy` | enterprise | Repo creation enforced, no public repos |
-| `enterprise.repo-deletion-restricted` | enterprise | Repo admins can't delete/transfer repos |
-| `enterprise.visibility-change-restricted` | enterprise | Repo admins can't change visibility |
-| `enterprise.ip-allow-list` | enterprise | IP allow list enabled (disabled by default in policy) |
-| `enterprise.max-owners` | enterprise | At most N enterprise owners (default 3) |
-| `enterprise.actions-restricted` | enterprise | Allowed actions = selected/local only |
-| `org.2fa-required` | org | 2FA required for members |
-| `org.default-permission` | org | Base permission in allowed list (default: none/read) |
-| `org.no-public-repo-creation` | org | Members can't create public repos |
-| `org.push-protection-new-repos` | org | Push protection on by default for new repos |
-| `org.actions-restricted` | org | Allowed actions = selected/local only |
-| `org.webhooks-tls` | org | No webhooks with TLS verification disabled |
-| `org.max-owners` | org | At most N owners (default 5) |
-| `org.default-branch-ruleset` | org | Active ruleset on default branches requiring PRs |
-| `repo.not-public` | repo | Repository is not public |
-| `repo.secret-scanning` | repo | Secret scanning enabled |
-| `repo.push-protection` | repo | Push protection enabled |
-| `repo.codeowners-present` | repo | CODEOWNERS present |
-| `repo.codeowners-valid` | repo | CODEOWNERS without errors |
-| `repo.stale` | repo | Pushed within N days (default 365) |
 
 ### Code scanning alerts
 
@@ -101,7 +83,7 @@ The same findings are converted to SARIF (`ConvertTo-GHComplianceSarif`) and upl
 SARIF publishing is selected by default. Manual runs can disable it and receive a findings summary
 instead. SARIF publishing requires compliance tests and code scanning availability.
 
-- Each alert points to the generated docs, or to the committed policy file when documentation is not selected.
+- Each alert points to generated docs when directly committed during the run, or to the committed policy file when documentation is not selected or is proposed in a PR.
 - Results include the observed finding, requirement and configured policy parameters. When running in Actions, they also link to the affected resource and generated documentation.
 - Rule help explains the potential impact, remediation, verification and relevant GitHub documentation.
 - Severity maps to `security-severity` high 8.0 / medium 5.0 / low 2.0, so alerts can be filtered and used in security overview.
