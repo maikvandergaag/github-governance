@@ -1,0 +1,18 @@
+{
+  "id": "org.private-forking-restricted",
+  "scope": "org",
+  "title": "Restrict private repository forks",
+  "remediation": "Restrict private repository forking in organization member privileges.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "settings"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.2.5"
+    ],
+    "coverage": "partial"
+  }
+}

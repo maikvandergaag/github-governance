@@ -6,6 +6,8 @@
 
 Without network restrictions, access is not limited to approved IP ranges.
 
+**Benchmark:** CIS GitHub Benchmark v1.2.0, `1.3.12`. This check covers only part of the recommendation; complete the remaining review manually.
+
 ### Remediation
 
 - [ ] In Enterprise settings > Authentication security > IP allow list, add approved ranges and enable the list.

@@ -190,6 +190,11 @@ Export-GHDocumentation -OutputPath ./docs/enterprise -Organization my-org -SkipR
 
 ### Tests
 
+The **Validate pull request** workflow validates the PowerShell module manifest and import, checks
+module syntax and error-level rules with PSScriptAnalyzer 1.25.0, and runs the offline validation
+suite and fake-API smoke test on every pull request. It uses no GitHub App credentials and does not
+change repository content.
+
 `tests/Invoke-SmokeTest.ps1` runs the whole chain (App JWT and tokens, getters, export, Pester compliance,
 report, SARIF, issue sync in dry run) against a fake GitHub API: no credentials or network needed.
 It requires PowerShell 7.2+ and Pester 5.7.1+.

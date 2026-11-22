@@ -10,6 +10,49 @@ function NotEvaluated([string] $Reason) {
     @{ status = 'na'; detail = $Reason }
 }
 
+function Test-GHSecurityDefault {
+    param($Snap, [string] $Field, [string] $Label)
+    $defaults = Get-Section $Snap 'securityConfigDefaults'
+    if ($null -eq $defaults) { return NotEvaluated 'Default code security configurations are not accessible.' }
+    foreach ($visibility in @('public', 'private_and_internal')) {
+        $matches = @($defaults | Where-Object { (Get-Prop $_ 'default_for_new_repos') -in @($visibility, 'all') })
+        if ($matches.Count -ne 1) {
+            return NotEvaluated "A unique default security configuration for $visibility was not returned."
+        }
+        $value = Get-Prop $matches[0] "configuration.$Field"
+        if ($value -notin @('enabled', 'disabled', 'not_set')) {
+            return NotEvaluated "$Label was not returned for $visibility."
+        }
+        if ($value -ne 'enabled') {
+            return Fail "$Label is $value in the default configuration for $visibility repositories."
+        }
+    }
+    Pass
+}
+
+function Test-GHBranchRule {
+    param($Repo, [string] $RuleType, [scriptblock] $RuleTest, [scriptblock] $ProtectionTest, [string] $Finding)
+    $evidence = Get-Prop $Repo 'complianceBranchEvidence'
+    if ($null -eq $evidence) { return NotEvaluated 'Default branch protection evidence was not collected.' }
+    $rules = Get-Prop $evidence 'rules'
+    $protection = Get-Prop $evidence 'protection'
+    $unknown = -not (Get-Prop $rules 'Ok') -or -not (Get-Prop $protection 'Ok')
+    if (Get-Prop $rules 'Ok') {
+        foreach ($rule in @(Get-Prop $rules 'Data' | Where-Object { (Get-Prop $_ 'type') -eq $RuleType })) {
+            $result = & $RuleTest $rule
+            if ($result -ceq $true) { return Pass }
+            if ($result -isnot [bool]) { $unknown = $true }
+        }
+    }
+    if ((Get-Prop $protection 'Ok') -and $null -ne (Get-Prop $protection 'Data')) {
+        $result = & $ProtectionTest (Get-Prop $protection 'Data')
+        if ($result -ceq $true) { return Pass }
+        if ($result -isnot [bool]) { $unknown = $true }
+    }
+    if ($unknown) { return NotEvaluated 'Branch rules or classic protection could not be fully evaluated.' }
+    Fail $Finding
+}
+
 function Get-Section {
     # Returns the Data of a snapshot section, or $null when the API call was not successful.
     param($Snap, [string] $Name)
@@ -132,14 +175,25 @@ function Get-GHComplianceChecks {
                 }
             }
             'organization-section' {
-                if ($scope -ne 'org' -or (Get-Prop $dataSource 'section') -notin @('settings', 'actionsPermissions', 'webhooks', 'admins', 'rulesets')) {
+                if ($scope -ne 'org' -or (Get-Prop $dataSource 'section') -notin @('settings', 'actionsPermissions', 'actionsWorkflowPermissions', 'webhooks', 'admins', 'rulesets', 'securityConfigDefaults', 'installations', 'actionsSecrets', 'runnerGroups')) {
                     throw "Compliance check '$id' has an invalid organization-section data source."
                 }
             }
             'repository' {
                 $codeOwners = Get-Prop $dataSource 'codeOwners'
-                if ($scope -ne 'repo' -or ($codeOwners -and $codeOwners -notin @('present', 'valid'))) {
+                $gitAttributes = Get-Prop $dataSource 'gitAttributes'
+                $gitIgnore = Get-Prop $dataSource 'gitIgnore'
+                $readme = Get-Prop $dataSource 'readme'
+                if ($scope -ne 'repo' -or ($codeOwners -and $codeOwners -notin @('present', 'valid')) -or
+                    ($null -ne $gitAttributes -and $gitAttributes -isnot [bool]) -or
+                    ($null -ne $gitIgnore -and $gitIgnore -isnot [bool]) -or
+                    ($null -ne $readme -and $readme -isnot [bool])) {
                     throw "Compliance check '$id' has an invalid repository data source."
+                }
+            }
+            'repository-branch-rules' {
+                if ($scope -ne 'repo') {
+                    throw "Compliance check '$id' has an invalid repository-branch-rules data source."
                 }
             }
             default {

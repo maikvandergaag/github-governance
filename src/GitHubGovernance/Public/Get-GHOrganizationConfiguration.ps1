@@ -30,6 +30,18 @@ function Get-GHOrganizationConfiguration {
             $snapshot.codeOwners = $null
             if (-not $SkipRepositories) {
                 $snapshot.repositories = Invoke-GitHubRest "orgs/$org/repos?type=all" -Paginate
+                if ($snapshot.repositories.Ok) {
+                    foreach ($repository in @($snapshot.repositories.Data | Where-Object { -not $_.archived })) {
+                        $evidence = Get-GHBranchEvidence -Organization ([uri]::EscapeDataString($org)) `
+                            -Repository ([uri]::EscapeDataString($repository.name)) -DefaultBranch (Get-Prop $repository 'default_branch')
+                        $repository | Add-Member -NotePropertyName complianceBranchEvidence -NotePropertyValue $evidence -Force
+                        $rootFiles = Get-GHRootFileEvidence -Organization ([uri]::EscapeDataString($org)) `
+                            -Repository ([uri]::EscapeDataString($repository.name)) -DefaultBranch (Get-Prop $repository 'default_branch')
+                        $repository | Add-Member -NotePropertyName complianceGitAttributes -NotePropertyValue (Get-Prop $rootFiles 'gitAttributes') -Force
+                        $repository | Add-Member -NotePropertyName complianceGitIgnore -NotePropertyValue (Get-Prop $rootFiles 'gitIgnore') -Force
+                        $repository | Add-Member -NotePropertyName complianceReadme -NotePropertyValue (Get-Prop $rootFiles 'readme') -Force
+                    }
+                }
                 if (-not $SkipCodeOwners -and $snapshot.repositories.Ok) {
                     $active = @($snapshot.repositories.Data | Where-Object { -not $_.archived } | ForEach-Object name)
                     $snapshot.codeOwners = @(Get-CodeOwnersBatch -Org $org -Repositories $active)

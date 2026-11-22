@@ -1,0 +1,18 @@
+{
+  "id": "org.secrets-limited-repositories",
+  "scope": "org",
+  "title": "Limit organization Actions secrets",
+  "remediation": "Restrict organization secrets to selected or private repositories as appropriate.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "actionsSecrets"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "2.1.7"
+    ],
+    "coverage": "partial"
+  }
+}

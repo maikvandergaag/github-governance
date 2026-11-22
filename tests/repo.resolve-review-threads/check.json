@@ -1,0 +1,17 @@
+{
+  "id": "repo.resolve-review-threads",
+  "scope": "repo",
+  "title": "Require review conversations to be resolved",
+  "remediation": "Require all review conversations to be resolved before merging.",
+  "dataSource": {
+    "type": "repository-branch-rules"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.1.11"
+    ],
+    "coverage": "partial"
+  }
+}

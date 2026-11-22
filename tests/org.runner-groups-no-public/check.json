@@ -1,0 +1,18 @@
+{
+  "id": "org.runner-groups-no-public",
+  "scope": "org",
+  "title": "Restrict runner groups from public repositories",
+  "remediation": "Disable public repository access for runner groups that do not explicitly need it.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "runnerGroups"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "2.1.5"
+    ],
+    "coverage": "partial"
+  }
+}

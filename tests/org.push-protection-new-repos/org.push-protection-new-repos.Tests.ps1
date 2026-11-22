@@ -2,19 +2,7 @@ param($ComplianceContext, [switch] $PolicyOnly)
 
 $PolicyCheck = {
     param($Snap, $Params)
-    $settings = Get-Section $Snap 'settings'
-    if ($null -eq $settings) {
-        return NotEvaluated 'Organization settings not available.'
-    }
-    $value = Get-Prop $settings[0] 'secret_scanning_push_protection_enabled_for_new_repositories'
-    if ($null -eq $value) {
-        return NotEvaluated 'Setting not returned (deprecated in favour of code security configurations?).'
-    }
-    if ($value) {
-        Pass
-    } else {
-        Fail 'New repositories do not get push protection by default.'
-    }
+    Test-GHSecurityDefault $Snap 'secret_scanning_push_protection' 'Push protection'
 }
 
 if ($PolicyOnly) {

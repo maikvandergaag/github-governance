@@ -1,0 +1,60 @@
+name: Validate pull request
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Install PowerShell validation tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force
+          Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force
+
+      - name: Validate PowerShell module
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($file in Get-ChildItem ./src/GitHubGovernance -Recurse -File -Include *.ps1,*.psm1,*.psd1) {
+            $tokens = $null
+            $parseErrors = $null
+            $null = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tokens, [ref]$parseErrors)
+            if ($parseErrors.Count) {
+              $parseErrors | Format-List | Out-Host
+              throw "PowerShell syntax validation failed: $($file.FullName)"
+            }
+          }
+          Test-ModuleManifest ./src/GitHubGovernance/GitHubGovernance.psd1 | Out-Null
+          Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0
+          $issues = @(Invoke-ScriptAnalyzer -Path ./src/GitHubGovernance -Recurse -Severity Error)
+          if ($issues.Count) {
+            $issues | Format-Table -AutoSize | Out-Host
+            throw 'PowerShell module validation failed.'
+          }
+          Import-Module ./src/GitHubGovernance/GitHubGovernance.psd1 -Force
+
+      - name: Run offline validation suite
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -RequiredVersion 5.7.1
+          $result = Invoke-Pester -Path ./tests/validation -PassThru
+          if ($result.Result -ne 'Passed' -or $result.TotalCount -eq 0) {
+            throw 'Offline validation failed or discovered no tests.'
+          }
+
+      - name: Run fake-API smoke test
+        shell: pwsh
+        run: pwsh -NoLogo -NoProfile -File ./tests/Invoke-SmokeTest.ps1

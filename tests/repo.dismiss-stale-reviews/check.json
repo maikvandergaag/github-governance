@@ -1,0 +1,17 @@
+{
+  "id": "repo.dismiss-stale-reviews",
+  "scope": "repo",
+  "title": "Dismiss stale pull request approvals",
+  "remediation": "Enable dismissal of stale approvals on new commits.",
+  "dataSource": {
+    "type": "repository-branch-rules"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.1.4"
+    ],
+    "coverage": "partial"
+  }
+}

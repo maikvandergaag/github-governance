@@ -1,0 +1,17 @@
+{
+  "id": "repo.signed-commits",
+  "scope": "repo",
+  "title": "Require signed commits",
+  "remediation": "Require signed commits on the default branch.",
+  "dataSource": {
+    "type": "repository-branch-rules"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.1.12"
+    ],
+    "coverage": "partial"
+  }
+}

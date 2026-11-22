@@ -8,6 +8,7 @@ $script:OrgSections = [ordered]@{
     outsideCollaborators = @{ Path = 'orgs/{0}/outside_collaborators'; Paginate = $true }
     rulesets = @{ Path = 'orgs/{0}/rulesets'; Paginate = $true }
     actionsPermissions = @{ Path = 'orgs/{0}/actions/permissions' }
+    actionsWorkflowPermissions = @{ Path = 'orgs/{0}/actions/permissions/workflow' }
     runners = @{ Path = 'orgs/{0}/actions/runners'; Paginate = $true; ItemProperty = 'runners' }
     runnerGroups = @{ Path = 'orgs/{0}/actions/runner-groups'; Paginate = $true; ItemProperty = 'runner_groups' }
     installations = @{ Path = 'orgs/{0}/installations'; Paginate = $true; ItemProperty = 'installations' }
@@ -16,6 +17,7 @@ $script:OrgSections = [ordered]@{
     actionsSecrets = @{ Path = 'orgs/{0}/actions/secrets'; Paginate = $true; ItemProperty = 'secrets' }
     actionsVariables = @{ Path = 'orgs/{0}/actions/variables'; Paginate = $true; ItemProperty = 'variables' }
     securityConfigs = @{ Path = 'orgs/{0}/code-security/configurations'; Paginate = $true }
+    securityConfigDefaults = @{ Path = 'orgs/{0}/code-security/configurations/defaults'; Paginate = $true }
     customProperties = @{ Path = 'orgs/{0}/properties/schema' }
     customRepoRoles = @{ Path = 'orgs/{0}/custom-repository-roles' }
 }
@@ -52,6 +54,60 @@ function Get-EnterpriseSection {
     param([Parameter(Mandatory)] [string] $Name)
     $def = $script:EnterpriseSections[$Name]
     return Invoke-GitHubRest -Path ($def.Path -f $script:Connection.Enterprise) -Paginate:([bool]$def['Paginate']) -ItemProperty ([string]$def['ItemProperty'])
+}
+
+function Get-GHRootFileEvidence {
+    param([string] $Organization, [string] $Repository, [string] $DefaultBranch, [switch] $StrictErrors)
+    if ([string]::IsNullOrWhiteSpace($DefaultBranch)) {
+        return $null
+    }
+    $branch = [uri]::EscapeDataString($DefaultBranch)
+    try {
+        $result = Invoke-GitHubRest "repos/$Organization/$Repository/git/trees/$branch" -StrictErrors:$StrictErrors
+    } catch {
+        if (-not $_.Exception.PSObject.Properties['Response'] -or -not $_.Exception.Response -or
+            [int]$_.Exception.Response.StatusCode -ne 409) {
+            throw
+        }
+        Write-Verbose "Root tree unavailable for $Organization/$Repository (HTTP 409); repository may be empty."
+        $result = [pscustomobject]@{ Ok = $false; Status = 409; Data = $null }
+    }
+    $data = $result.Data
+    if (-not $result.Ok -or (Get-Prop $data 'truncated') -cne $false -or
+        $null -eq $data -or -not $data.PSObject.Properties['tree'] -or $null -eq $data.tree) {
+        return [pscustomobject]@{
+            gitAttributes = [pscustomobject]@{ evaluated = $false; present = $null }
+            gitIgnore = [pscustomobject]@{ evaluated = $false; present = $null }
+            readme = [pscustomobject]@{ evaluated = $false; present = $null }
+        }
+    }
+    $evidence = [ordered]@{}
+    foreach ($file in @(@('gitAttributes', '.gitattributes'), @('gitIgnore', '.gitignore'), @('readme', 'README.md'))) {
+        $matches = @($data.tree | Where-Object {
+                (Get-Prop $_ 'path') -ceq $file[1] -and
+                (Get-Prop $_ 'type') -eq 'blob' -and (Get-Prop $_ 'mode') -in @('100644', '100755')
+            })
+        $evidence[$file[0]] = [pscustomobject]@{ evaluated = $true; present = ($matches.Count -gt 0) }
+    }
+    return [pscustomobject]$evidence
+}
+
+function Get-GHBranchEvidence {
+    param([string] $Organization, [string] $Repository, [string] $DefaultBranch, [switch] $StrictErrors)
+    if ([string]::IsNullOrWhiteSpace($DefaultBranch)) {
+        return $null
+    }
+    $branch = [uri]::EscapeDataString($DefaultBranch)
+    $base = "repos/$Organization/$Repository"
+    $rules = Invoke-GitHubRest "$base/rules/branches/$branch" -Paginate -StrictErrors:$StrictErrors
+    $protection = Invoke-GitHubRest "$base/branches/$branch/protection" -StrictErrors:$StrictErrors
+    if (-not $protection.Ok -and $protection.Status -eq 404) {
+        $branchInfo = Invoke-GitHubRest "$base/branches/$branch" -StrictErrors:$StrictErrors
+        if ($branchInfo.Ok -and (Get-Prop $branchInfo.Data 'protected') -ceq $false) {
+            $protection = [pscustomobject]@{ Ok = $true; Status = 200; Data = $null }
+        }
+    }
+    return [pscustomobject]@{ branch = $DefaultBranch; rules = $rules; protection = $protection }
 }
 
 function Get-OrgRulesetDetails {

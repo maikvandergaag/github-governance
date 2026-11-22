@@ -6,6 +6,8 @@
 
 Affiliated accounts without 2FA are more vulnerable to credential theft.
 
+**Benchmark:** CIS GitHub Benchmark v1.2.0, `1.3.4`, `1.3.5`. This check covers only part of the recommendation; complete the remaining review manually.
+
 ### Remediation
 
 - [ ] Enforce 2FA at enterprise level, or follow up with the users listed under Enterprise settings > People.

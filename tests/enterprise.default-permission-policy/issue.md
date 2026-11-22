@@ -6,6 +6,8 @@
 
 Unrestricted base permissions can give members broader repository access than intended.
 
+**Benchmark:** CIS GitHub Benchmark v1.2.0, `1.3.8`. This check covers only part of the recommendation; complete the remaining review manually.
+
 ### Remediation
 
 - [ ] In Enterprise settings > Policies > Repositories > Base permissions, set No permission or Read.

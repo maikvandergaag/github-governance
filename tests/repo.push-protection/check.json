@@ -5,5 +5,13 @@
   "remediation": "Attach a code security configuration with push protection to this repository.",
   "dataSource": {
     "type": "repository"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.5.1"
+    ],
+    "coverage": "partial"
   }
 }

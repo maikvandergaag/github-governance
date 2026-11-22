@@ -1,0 +1,10 @@
+{
+  "id": "repo.gitignore-present",
+  "scope": "repo",
+  "title": ".gitignore file is present",
+  "remediation": "Add a regular .gitignore file at the repository root on the default branch with ignore rules appropriate for the project.",
+  "dataSource": {
+    "type": "repository",
+    "gitIgnore": true
+  }
+}

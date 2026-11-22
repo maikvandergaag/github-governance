@@ -1,0 +1,18 @@
+{
+  "id": "org.actions-sha-pinning",
+  "scope": "org",
+  "title": "Require Actions to use immutable SHA references",
+  "remediation": "Require actions to be pinned to full commit SHAs in organization Actions policy.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "actionsPermissions"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "2.4.2"
+    ],
+    "coverage": "partial"
+  }
+}

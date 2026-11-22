@@ -34,10 +34,11 @@ function Invoke-GHPesterChecks {
     }
 
     if ($selected.Count -gt 0) {
+        $dataCache = @{}
         $containers = foreach ($check in $selected) {
             # Nested Pester scopes hide module state, so evaluate before entering Pester.
             $result = Invoke-GHComplianceCheck -CheckId $check.Id -Organization $Organization -Repository $Repository `
-                -Config $check.Config -TestsPath $TestsPath
+                -Config $check.Config -TestsPath $TestsPath -DataCache $dataCache
             $context = @{
                 Id = $check.Id; Config = $check.Config
                 Organization = $Organization; Repository = $Repository; Result = $result

@@ -1,0 +1,18 @@
+{
+  "id": "org.secret-scanning-new-repos",
+  "scope": "org",
+  "title": "Secret scanning is enabled for new repositories",
+  "remediation": "Enable secret scanning by default for new repositories in organization code security settings.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "securityConfigDefaults"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.5.1"
+    ],
+    "coverage": "partial"
+  }
+}

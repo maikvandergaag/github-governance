@@ -1,0 +1,10 @@
+{
+  "id": "repo.readme-present",
+  "scope": "repo",
+  "title": "Root README.md file is present",
+  "remediation": "Add a regular README.md file at the repository root on the default branch with project purpose, setup and usage guidance.",
+  "dataSource": {
+    "type": "repository",
+    "readme": true
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "repo.gitattributes-present",
+  "scope": "repo",
+  "title": ".gitattributes file is present",
+  "remediation": "Add a regular .gitattributes file at the repository root on the default branch and configure attributes appropriate for the project.",
+  "dataSource": {
+    "type": "repository",
+    "gitAttributes": true
+  }
+}

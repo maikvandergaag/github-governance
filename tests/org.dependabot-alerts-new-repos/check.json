@@ -1,0 +1,19 @@
+{
+  "id": "org.dependabot-alerts-new-repos",
+  "scope": "org",
+  "title": "Dependabot alerts are enabled for new repositories",
+  "remediation": "Enable Dependabot alerts by default for new repositories in organization code security settings.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "securityConfigDefaults"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.5.5",
+      "3.2.2"
+    ],
+    "coverage": "partial"
+  }
+}

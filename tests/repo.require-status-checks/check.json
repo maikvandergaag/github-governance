@@ -1,0 +1,17 @@
+{
+  "id": "repo.require-status-checks",
+  "scope": "repo",
+  "title": "Require status checks before merging",
+  "remediation": "Require relevant status checks before merging.",
+  "dataSource": {
+    "type": "repository-branch-rules"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.1.9"
+    ],
+    "coverage": "partial"
+  }
+}

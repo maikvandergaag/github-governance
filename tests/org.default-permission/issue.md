@@ -6,6 +6,8 @@
 
 Broad base permissions can grant members unintended access to repositories.
 
+**Benchmark:** CIS GitHub Benchmark v1.2.0, `1.3.8`. This check covers only part of the recommendation; complete the remaining review manually.
+
 ### Remediation
 
 - [ ] In Organization settings > Member privileges > Base permissions, select an allowed permission.

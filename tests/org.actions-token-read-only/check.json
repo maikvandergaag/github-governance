@@ -1,0 +1,18 @@
+{
+  "id": "org.actions-token-read-only",
+  "scope": "org",
+  "title": "Restrict default workflow token permissions",
+  "remediation": "Set default workflow permissions to read-only in organization Actions settings.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "actionsWorkflowPermissions"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "2.1.7"
+    ],
+    "coverage": "partial"
+  }
+}

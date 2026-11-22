@@ -12,6 +12,7 @@ function Invoke-GHComplianceCheck {
         [string] $Organization,
         [string] $Repository,
         $Config,
+        [hashtable] $DataCache,
         [string] $TestsPath = (Join-Path $PSScriptRoot '../../../tests')
     )
 
@@ -115,12 +116,18 @@ function Invoke-GHComplianceCheck {
             $paths = @{
                 settings = "orgs/$org"
                 actionsPermissions = "orgs/$org/actions/permissions"
+                actionsWorkflowPermissions = "orgs/$org/actions/permissions/workflow"
                 webhooks = "orgs/$org/hooks"
                 admins = "orgs/$org/members?role=admin"
                 rulesets = "orgs/$org/rulesets"
+                securityConfigDefaults = "orgs/$org/code-security/configurations/defaults"
+                installations = "orgs/$org/installations"
+                actionsSecrets = "orgs/$org/actions/secrets"
+                runnerGroups = "orgs/$org/actions/runner-groups"
             }
             $section = Invoke-GitHubRest -Path $paths[$sectionName] `
-                -Paginate:($sectionName -in 'webhooks', 'admins', 'rulesets') -StrictErrors
+                -Paginate:($sectionName -in 'webhooks', 'admins', 'rulesets', 'securityConfigDefaults', 'installations', 'actionsSecrets', 'runnerGroups') `
+                -ItemProperty $(switch ($sectionName) { 'installations' { 'installations' } 'actionsSecrets' { 'secrets' } 'runnerGroups' { 'runner_groups' } default { '' } }) -StrictErrors
             $snap = [pscustomobject]@{ $sectionName = $section }
             if ($sectionName -eq 'rulesets') {
                 $details = @()
@@ -138,6 +145,22 @@ function Invoke-GHComplianceCheck {
             }
             return & $check $snap $params
         }
+        'repository-branch-rules' {
+            if ($null -eq $DataCache) { $DataCache = @{} }
+            if (-not $DataCache.ContainsKey('branchEvidence')) {
+                $repositoryResult = Invoke-GitHubRest -Path "repos/$org/$repo" -StrictErrors
+                if (-not $repositoryResult.Ok -or -not $repositoryResult.Data) {
+                    return NotEvaluated "Repository is not accessible (HTTP $($repositoryResult.Status))."
+                }
+                if (Get-Prop $repositoryResult.Data 'archived') {
+                    return NotEvaluated 'Archived repositories are excluded.'
+                }
+                $DataCache.branchEvidence = Get-GHBranchEvidence -Organization $org -Repository $repo `
+                    -DefaultBranch (Get-Prop $repositoryResult.Data 'default_branch') -StrictErrors
+            }
+            $repoData = [pscustomobject]@{ complianceBranchEvidence = $DataCache.branchEvidence }
+            return & $check $repoData $null $null $params
+        }
         'repository' {
             $repositoryResult = Invoke-GitHubRest -Path "repos/$org/$repo" -StrictErrors
             if (-not $repositoryResult.Ok) {
@@ -146,6 +169,16 @@ function Invoke-GHComplianceCheck {
             $repoData = $repositoryResult.Data
             if (Get-Prop $repoData 'archived') {
                 return NotEvaluated 'Archived repositories are excluded.'
+            }
+            if ((Get-Prop $dataSource 'gitAttributes') -or (Get-Prop $dataSource 'gitIgnore') -or (Get-Prop $dataSource 'readme')) {
+                if ($null -eq $DataCache) { $DataCache = @{} }
+                if (-not $DataCache.ContainsKey('rootFileEvidence')) {
+                    $DataCache.rootFileEvidence = Get-GHRootFileEvidence -Organization $org -Repository $repo `
+                        -DefaultBranch (Get-Prop $repoData 'default_branch') -StrictErrors
+                }
+                $repoData | Add-Member -NotePropertyName complianceGitAttributes -NotePropertyValue (Get-Prop $DataCache.rootFileEvidence 'gitAttributes') -Force
+                $repoData | Add-Member -NotePropertyName complianceGitIgnore -NotePropertyValue (Get-Prop $DataCache.rootFileEvidence 'gitIgnore') -Force
+                $repoData | Add-Member -NotePropertyName complianceReadme -NotePropertyValue (Get-Prop $DataCache.rootFileEvidence 'readme') -Force
             }
             $owners = $null
             $codeOwnersCheck = Get-Prop $dataSource 'codeOwners'

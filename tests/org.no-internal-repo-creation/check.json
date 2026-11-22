@@ -1,0 +1,18 @@
+{
+  "id": "org.no-internal-repo-creation",
+  "scope": "org",
+  "title": "Restrict internal repository creation",
+  "remediation": "Disable member creation of internal repositories in organization member privileges.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "settings"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.2.2"
+    ],
+    "coverage": "partial"
+  }
+}

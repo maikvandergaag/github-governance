@@ -6,6 +6,8 @@
 
 Without CODEOWNERS, designated owners cannot be automatically requested for review.
 
+**Benchmark:** CIS GitHub Benchmark v1.2.0, `1.1.6`. This check covers only part of the recommendation; complete the remaining review manually.
+
 ### Remediation
 
 - [ ] Add a CODEOWNERS file in `.github/`, the root or `docs/` on the default branch.
