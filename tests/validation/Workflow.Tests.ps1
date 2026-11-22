@@ -347,11 +347,15 @@ Describe 'Compliance workflow stages' {
         }
     }
 
-    It 'creates and updates a managed documentation branch without overwriting other work' {
-        $source = Join-Path $TestDrive 'pr-source'
-        $remote = Join-Path $TestDrive 'pr-remote.git'
-        $destination = Join-Path $TestDrive 'pr-destination'
-        $bin = Join-Path $TestDrive 'pr-bin'
+    It 'creates and updates a managed documentation branch on <ServerUrl> without overwriting other work' -TestCases @(
+        @{ ServerUrl = 'https://github.com'; HostName = 'github.com' }
+        @{ ServerUrl = 'https://mirror.example'; HostName = 'mirror.example' }
+    ) {
+        param($ServerUrl, $HostName)
+        $source = Join-Path $TestDrive "pr-source-$HostName"
+        $remote = Join-Path $TestDrive "pr-remote-$HostName.git"
+        $destination = Join-Path $TestDrive "pr-destination-$HostName"
+        $bin = Join-Path $TestDrive "pr-bin-$HostName"
         New-Item -ItemType Directory -Path "$source/docs/enterprise", $bin -Force | Out-Null
         & git -C $source init -q
         Set-Content "$source/docs/enterprise/page.md" 'old page'
@@ -366,6 +370,8 @@ Describe 'Compliance workflow stages' {
         $gh = @'
 #!/usr/bin/env bash
 set -e
+[ "$GH_HOST" = "$EXPECTED_GH_HOST" ]
+[ "$GH_REPO" = "$EXPECTED_GH_HOST/fixture/repository" ]
 echo "$*" >> "$GH_CALLS"
 case "$1 $2" in
   "pr list") if [ -f "$GH_PR" ]; then echo 42; fi ;;
@@ -377,7 +383,7 @@ esac
 '@
         [IO.File]::WriteAllText("$bin/gh", $gh.Replace("`r`n", "`n") + "`n")
         & chmod +x "$bin/gh"
-        $keys = @('PATH', 'OUTPUT_PATH', 'RUN_COMPLIANCE', 'DOCS_PUBLISH_MODE', 'GITHUB_REF_NAME', 'GITHUB_OUTPUT', 'GITHUB_STEP_SUMMARY', 'GH_CALLS', 'GH_PR')
+        $keys = @('PATH', 'OUTPUT_PATH', 'RUN_COMPLIANCE', 'DOCS_PUBLISH_MODE', 'GITHUB_REF_NAME', 'GITHUB_SERVER_URL', 'GITHUB_REPOSITORY', 'GITHUB_OUTPUT', 'GITHUB_STEP_SUMMARY', 'GH_CALLS', 'GH_PR', 'EXPECTED_GH_HOST', 'GH_HOST', 'GH_REPO')
         $previous = @{}
         foreach ($key in $keys) { $previous[$key] = [Environment]::GetEnvironmentVariable($key) }
         try {
@@ -386,10 +392,14 @@ esac
             $env:RUN_COMPLIANCE = 'false'
             $env:DOCS_PUBLISH_MODE = 'pull_request'
             $env:GITHUB_REF_NAME = $base
-            $env:GITHUB_OUTPUT = Join-Path $TestDrive 'pr-output'
-            $env:GITHUB_STEP_SUMMARY = Join-Path $TestDrive 'pr-summary'
-            $env:GH_CALLS = Join-Path $TestDrive 'pr-gh-calls'
-            $env:GH_PR = Join-Path $TestDrive 'pr-open'
+            $env:GITHUB_SERVER_URL = $ServerUrl
+            $env:GITHUB_REPOSITORY = 'fixture/repository'
+            $env:EXPECTED_GH_HOST = $HostName
+            Remove-Item Env:GH_HOST, Env:GH_REPO -ErrorAction SilentlyContinue
+            $env:GITHUB_OUTPUT = Join-Path $TestDrive "pr-output-$HostName"
+            $env:GITHUB_STEP_SUMMARY = Join-Path $TestDrive "pr-summary-$HostName"
+            $env:GH_CALLS = Join-Path $TestDrive "pr-gh-calls-$HostName"
+            $env:GH_PR = Join-Path $TestDrive "pr-open-$HostName"
             $publish = Get-BashStepScript $commitDocs 'Commit changes'
             Set-Content "$source/docs/enterprise/page.md" 'first inventory'
             Invoke-BashStep $source (Get-BashStepScript $inventory 'Prepare documentation patch')
