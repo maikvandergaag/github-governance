@@ -1,0 +1,10 @@
+{
+  "id": "org.actions-restricted",
+  "scope": "org",
+  "title": "GitHub Actions are restricted to approved actions",
+  "remediation": "Organization settings > Actions > General > Policies: allow selected actions only.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "actionsPermissions"
+  }
+}

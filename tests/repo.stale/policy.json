@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "severity": "low",
+  "params": {
+    "days": 365
+  }
+}

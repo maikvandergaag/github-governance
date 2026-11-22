@@ -1,0 +1,10 @@
+{
+  "id": "org.webhooks-tls",
+  "scope": "org",
+  "title": "Webhooks verify TLS certificates",
+  "remediation": "Edit the webhook and enable SSL verification.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "webhooks"
+  }
+}

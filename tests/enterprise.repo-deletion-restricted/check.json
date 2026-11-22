@@ -1,0 +1,10 @@
+{
+  "id": "enterprise.repo-deletion-restricted",
+  "scope": "enterprise",
+  "title": "Repository admins cannot delete or transfer repositories",
+  "remediation": "Enterprise settings > Policies > Repositories > Repository deletion and transfer: Disabled.",
+  "dataSource": {
+    "type": "enterprise-owner-info",
+    "fields": "membersCanDeleteRepositoriesSetting"
+  }
+}

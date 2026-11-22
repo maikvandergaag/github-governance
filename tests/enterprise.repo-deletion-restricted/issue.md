@@ -1,0 +1,14 @@
+## Restrict repository deletion and transfer
+
+**Target:** [{{target}}]({{target_url}}) · **Check:** `{{check}}` · **Severity:** {{severity}}
+
+**Finding:** {{finding}}
+
+Repository deletion or transfer can cause data loss or move assets outside intended control.
+
+### Remediation
+
+- [ ] In Enterprise settings > Policies > Repositories, disable repository deletion and transfer by repository admins.
+- [ ] Verify the setting and run the compliance workflow again.
+
+[Generated documentation]({{docs_url}}) · To accept a deviation, add an exemption in `compliance/policy.json`.

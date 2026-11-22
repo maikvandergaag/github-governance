@@ -1,0 +1,10 @@
+{
+  "id": "enterprise.2fa-required",
+  "scope": "enterprise",
+  "title": "Two-factor authentication is required enterprise-wide",
+  "remediation": "Enterprise settings > Authentication security > Require two-factor authentication. Not applicable to Enterprise Managed Users with IdP MFA: add an exemption then.",
+  "dataSource": {
+    "type": "enterprise-owner-info",
+    "fields": "twoFactorRequiredSetting"
+  }
+}

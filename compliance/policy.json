@@ -1,0 +1,32 @@
+{
+  "$comment": "Overrides for checks discovered under tests/. Checks omitted here use their tests/<check-id>/policy.json defaults. Set 'enabled' to false to disable a check, adjust 'severity' (high/medium/low) and 'params'. Exemptions: keys 'enterprise:<slug>', '<org>' or '<org>/<repo>', value = list of check ids.",
+  "checks": {
+    "enterprise.2fa-required":              { "enabled": true,  "severity": "high" },
+    "enterprise.users-without-2fa":         { "enabled": true,  "severity": "high" },
+    "enterprise.sso-configured":            { "enabled": true,  "severity": "high" },
+    "enterprise.default-permission-policy": { "enabled": true,  "severity": "medium", "params": { "allowed": ["NONE", "READ"] } },
+    "enterprise.repo-creation-policy":      { "enabled": true,  "severity": "high" },
+    "enterprise.repo-deletion-restricted":  { "enabled": true,  "severity": "medium" },
+    "enterprise.visibility-change-restricted": { "enabled": true, "severity": "medium" },
+    "enterprise.ip-allow-list":             { "enabled": false, "severity": "medium" },
+    "enterprise.max-owners":                { "enabled": true,  "severity": "medium", "params": { "max": 3 } },
+    "enterprise.actions-restricted":        { "enabled": true,  "severity": "medium", "params": { "allowed": ["selected", "local_only"] } },
+
+    "org.2fa-required":            { "enabled": true,  "severity": "high" },
+    "org.default-permission":      { "enabled": true,  "severity": "medium", "params": { "allowed": ["none", "read"] } },
+    "org.no-public-repo-creation": { "enabled": true,  "severity": "high" },
+    "org.push-protection-new-repos": { "enabled": true, "severity": "medium" },
+    "org.actions-restricted":      { "enabled": true,  "severity": "medium", "params": { "allowed": ["selected", "local_only"] } },
+    "org.webhooks-tls":            { "enabled": true,  "severity": "high" },
+    "org.max-owners":              { "enabled": true,  "severity": "medium", "params": { "max": 5 } },
+    "org.default-branch-ruleset":  { "enabled": true,  "severity": "high" },
+
+    "repo.not-public":             { "enabled": true,  "severity": "high" },
+    "repo.secret-scanning":        { "enabled": true,  "severity": "high" },
+    "repo.push-protection":        { "enabled": true,  "severity": "high" },
+    "repo.codeowners-present":     { "enabled": true,  "severity": "medium" },
+    "repo.codeowners-valid":       { "enabled": true,  "severity": "medium" },
+    "repo.stale":                  { "enabled": true,  "severity": "low", "params": { "days": 365 } }
+  },
+  "exemptions": {}
+}

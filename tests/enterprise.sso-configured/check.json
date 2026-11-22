@@ -1,0 +1,10 @@
+{
+  "id": "enterprise.sso-configured",
+  "scope": "enterprise",
+  "title": "Single sign-on is configured",
+  "remediation": "Configure SAML or OIDC SSO for the enterprise (or use Enterprise Managed Users).",
+  "dataSource": {
+    "type": "enterprise-owner-info",
+    "fields": "samlIdentityProvider { issuer } oidcProvider { providerType }"
+  }
+}

@@ -1,0 +1,439 @@
+name: Check - GitHub Enterprise
+
+on:
+  schedule:
+    - cron: '17 5 * * 1' # Every Monday 05:17 UTC
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Account mode
+        type: choice
+        required: true
+        default: enterprise
+        options:
+          - enterprise
+          - organization
+          - user
+      documentation:
+        description: Generate and commit documentation
+        type: boolean
+        default: true
+      compliance:
+        description: Run compliance tests and synchronize issues
+        type: boolean
+        default: true
+      publish_sarif:
+        description: Publish results to code scanning (requires compliance tests)
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: document-enterprise
+  cancel-in-progress: false
+
+env:
+  ENTERPRISE_SLUG: ${{ vars.ENTERPRISE_SLUG }}
+  ACCOUNT_SCOPE: ${{ inputs.mode || vars.ACCOUNT_SCOPE || 'enterprise' }}
+  ACCOUNT_LOGIN: ${{ vars.ACCOUNT_LOGIN }}
+  RUN_DOCUMENTATION: ${{ github.event_name == 'schedule' || inputs.documentation }}
+  RUN_COMPLIANCE: ${{ github.event_name == 'schedule' || inputs.compliance }}
+  RUN_SARIF: ${{ github.event_name == 'schedule' || inputs.publish_sarif }}
+  ENTERPRISE_API_URL: ${{ vars.ENTERPRISE_API_URL || 'https://api.github.com' }}
+  OUTPUT_PATH: docs/enterprise
+  MODULE_PATH: ./src/GitHubGovernance/GitHubGovernance.psd1
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    # Environment secrets (DOCS_APP_PRIVATE_KEY) are only released to runs on the branches the
+    # environment allows (main). See docs/configuration/03-setup.md.
+    environment: enterprise-compliance
+    outputs:
+      documentation: ${{ steps.selections.outputs.documentation }}
+      compliance: ${{ steps.selections.outputs.compliance }}
+      sarif: ${{ steps.selections.outputs.sarif }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Validate configuration
+        shell: pwsh
+        env:
+          GH_APP_CLIENT_ID: ${{ vars.DOCS_APP_CLIENT_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUN_SARIF -eq 'true' -and $env:RUN_COMPLIANCE -ne 'true') {
+            throw 'SARIF publishing requires compliance tests to be selected.'
+          }
+          if ($env:RUN_DOCUMENTATION -ne 'true' -and $env:RUN_COMPLIANCE -ne 'true') {
+            Write-Host 'No documentation or compliance actions selected.'
+            return
+          }
+          $missing = [System.Collections.Generic.List[string]]::new()
+          if ($env:ACCOUNT_SCOPE -notin 'enterprise', 'organization', 'user') {
+            throw "Invalid account mode. Use enterprise, organization, or user."
+          }
+          if ($env:ACCOUNT_SCOPE -eq 'enterprise' -and [string]::IsNullOrWhiteSpace($env:ENTERPRISE_SLUG)) {
+            $missing.Add('ENTERPRISE_SLUG')
+          }
+          if ($env:ACCOUNT_SCOPE -in 'organization', 'user' -and [string]::IsNullOrWhiteSpace($env:ACCOUNT_LOGIN)) {
+            $missing.Add('ACCOUNT_LOGIN')
+          }
+          if ([string]::IsNullOrWhiteSpace($env:GH_APP_CLIENT_ID)) { $missing.Add('DOCS_APP_CLIENT_ID') }
+          if ([string]::IsNullOrWhiteSpace($env:GH_APP_PRIVATE_KEY)) { $missing.Add('DOCS_APP_PRIVATE_KEY environment secret') }
+          if ([string]::IsNullOrWhiteSpace($env:GITHUB_TOKEN)) { $missing.Add('GITHUB_TOKEN') }
+          if ($missing.Count) {
+            throw "Missing required configuration: $($missing -join ', '). See docs/repo/SETUP.md."
+          }
+          $api = $null
+          if (-not [uri]::TryCreate($env:ENTERPRISE_API_URL, [UriKind]::Absolute, [ref]$api) -or
+              $api.Scheme -ne 'https' -or -not $api.Host -or $api.UserInfo -or $api.Query -or $api.Fragment) {
+            throw 'ENTERPRISE_API_URL must be an HTTPS URL without user information, a query, or a fragment.'
+          }
+          Write-Host "Required configuration is present for $($env:ACCOUNT_SCOPE) mode."
+
+      - name: Validate GitHub App authentication
+        if: ${{ env.RUN_DOCUMENTATION == 'true' || env.RUN_COMPLIANCE == 'true' }}
+        shell: pwsh
+        env:
+          GH_APP_CLIENT_ID: ${{ vars.DOCS_APP_CLIENT_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module $env:MODULE_PATH -Force
+          $scope = switch ($env:ACCOUNT_SCOPE) {
+            'enterprise' { @{ Enterprise = $env:ENTERPRISE_SLUG } }
+            'organization' { @{ Organization = $env:ACCOUNT_LOGIN } }
+            'user' { @{ User = $env:ACCOUNT_LOGIN } }
+            default { throw 'Invalid account mode.' }
+          }
+          try {
+            Connect-GHGovernance @scope -AppClientId $env:GH_APP_CLIENT_ID -AppPrivateKey $env:GH_APP_PRIVATE_KEY -ApiBaseUrl $env:ENTERPRISE_API_URL | Out-Null
+            if ($env:ACCOUNT_SCOPE -eq 'user') {
+              Get-GHRepository -Organization $env:ACCOUNT_LOGIN -IncludeArchived -ErrorAction Stop | Out-Null
+            } else {
+              Get-GHOrganization -ErrorAction Stop | Out-Null
+            }
+            Write-Host "GitHub App authentication and account access verified."
+          } finally {
+            Disconnect-GHGovernance
+          }
+
+      - name: Record selected actions
+        id: selections
+        shell: pwsh
+        run: |
+          "documentation=$env:RUN_DOCUMENTATION" >> $env:GITHUB_OUTPUT
+          "compliance=$env:RUN_COMPLIANCE" >> $env:GITHUB_OUTPUT
+          "sarif=$env:RUN_SARIF" >> $env:GITHUB_OUTPUT
+
+  inventory:
+    needs: validate
+    if: ${{ needs.validate.outputs.documentation == 'true' || needs.validate.outputs.compliance == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    environment: enterprise-compliance
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Collect documentation and inventory
+        shell: pwsh
+        env:
+          # GitHub App installed on the enterprise and every organization.
+          GH_APP_CLIENT_ID: ${{ vars.DOCS_APP_CLIENT_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+        run: |
+          Import-Module $env:MODULE_PATH -Force
+          $scope = switch ($env:ACCOUNT_SCOPE) {
+            'enterprise' { @{ Enterprise = $env:ENTERPRISE_SLUG } }
+            'organization' { @{ Organization = $env:ACCOUNT_LOGIN } }
+            'user' { @{ User = $env:ACCOUNT_LOGIN } }
+            default { throw "Invalid ACCOUNT_SCOPE: $env:ACCOUNT_SCOPE" }
+          }
+          Connect-GHGovernance @scope -AppClientId $env:GH_APP_CLIENT_ID -AppPrivateKey $env:GH_APP_PRIVATE_KEY -ApiBaseUrl $env:ENTERPRISE_API_URL | Format-List
+          Export-GHDocumentation -OutputPath $env:OUTPUT_PATH
+          Disconnect-GHGovernance
+
+      - name: Prepare documentation patch
+        shell: bash
+        run: |
+          git add -A "$OUTPUT_PATH"
+          git diff --cached --binary -- "$OUTPUT_PATH" > generated-docs.patch
+
+      - name: Upload documentation patch
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: documentation-patch
+          path: generated-docs.patch
+          if-no-files-found: error
+
+  pester:
+    needs: [validate, inventory]
+    if: ${{ needs.validate.outputs.compliance == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    environment: enterprise-compliance
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Download documentation patch
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: documentation-patch
+
+      - name: Restore documentation
+        shell: bash
+        run: |
+          if [ -s generated-docs.patch ]; then
+            git apply --index --whitespace=nowarn generated-docs.patch
+          fi
+
+      - name: Install Pester
+        shell: pwsh
+        run: Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -ErrorAction Stop
+
+      # Evaluated before the commit so the findings report is part of the docs commit.
+      - name: Evaluate compliance with Pester
+        id: evaluate
+        shell: pwsh
+        env:
+          GH_APP_CLIENT_ID: ${{ vars.DOCS_APP_CLIENT_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+        run: |
+          Import-Module $env:MODULE_PATH -Force
+          $scope = switch ($env:ACCOUNT_SCOPE) {
+            'enterprise' { @{ Enterprise = $env:ENTERPRISE_SLUG } }
+            'organization' { @{ Organization = $env:ACCOUNT_LOGIN } }
+            'user' { @{ User = $env:ACCOUNT_LOGIN } }
+            default { throw "Invalid ACCOUNT_SCOPE: $env:ACCOUNT_SCOPE" }
+          }
+          Connect-GHGovernance @scope -AppClientId $env:GH_APP_CLIENT_ID -AppPrivateKey $env:GH_APP_PRIVATE_KEY -ApiBaseUrl $env:ENTERPRISE_API_URL | Out-Null
+          $params = @{
+            UsePester = $true
+            DataPath = "$env:OUTPUT_PATH/_data"
+            PolicyPath = './compliance/policy.json'
+            OutputFile = './compliance-findings.json'
+            DocsPath = $env:OUTPUT_PATH
+            ReportFile = "$env:OUTPUT_PATH/compliance/README.md"
+          }
+          try { $findings = Test-GHCompliance @params }
+          finally { Disconnect-GHGovernance }
+          Write-Host "$(@($findings | Where-Object { $_.failures }).Count) non-compliant target(s)."
+
+      - name: Prepare generated documentation
+        shell: bash
+        run: |
+          test -f compliance-findings.json
+          # A patch preserves added, changed and deleted generated files across jobs.
+          git add -A "$OUTPUT_PATH"
+          git diff --cached --binary -- "$OUTPUT_PATH" > enterprise-docs.patch
+
+      - name: Upload findings and documentation
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: compliance-findings
+          path: |
+            compliance-findings.json
+            enterprise-docs.patch
+          if-no-files-found: error
+
+  commit_docs:
+    needs: [validate, inventory, pester]
+    if: ${{ !cancelled() && needs.validate.result == 'success' && needs.inventory.result == 'success' && needs.validate.outputs.documentation == 'true' && (needs.validate.outputs.compliance != 'true' || needs.pester.result == 'success') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Download findings and documentation
+        if: ${{ needs.validate.outputs.compliance == 'true' }}
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: compliance-findings
+
+      - name: Download documentation patch
+        if: ${{ needs.validate.outputs.compliance != 'true' }}
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: documentation-patch
+
+      - name: Commit changes
+        id: commit
+        shell: bash
+        env:
+          RUN_COMPLIANCE: ${{ needs.validate.outputs.compliance }}
+        run: |
+          # Alerts must point at the commit that contains the docs; default to the current commit.
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          patch=generated-docs.patch
+          if [ "$RUN_COMPLIANCE" = "true" ]; then
+            patch=enterprise-docs.patch
+          fi
+          if [ -s "$patch" ]; then
+            git apply --index --whitespace=nowarn "$patch"
+          fi
+
+          # README.md always changes (timestamp); only commit when something else changed.
+          if git diff --cached --quiet -- "$OUTPUT_PATH" ":(exclude)$OUTPUT_PATH/README.md"; then
+            echo "No configuration changes detected."
+            git reset --quiet
+            exit 0
+          fi
+
+          {
+            echo "### Configuration changes detected"
+            echo '```'
+            git diff --cached --stat -- "$OUTPUT_PATH"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          git commit -m "docs: update GitHub Enterprise documentation ($(date -u +%Y-%m-%d))"
+          git push
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  publish_sarif:
+    needs: [validate, pester, commit_docs]
+    if: ${{ !cancelled() && needs.validate.result == 'success' && needs.validate.outputs.sarif == 'true' && needs.pester.result == 'success' && (needs.validate.outputs.documentation != 'true' || needs.commit_docs.result == 'success') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ needs.commit_docs.outputs.sha || github.sha }}
+
+      - name: Download findings
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: compliance-findings
+
+      - name: Convert findings to SARIF
+        shell: pwsh
+        env:
+          RESULT_COMMIT: ${{ needs.commit_docs.outputs.sha || github.sha }}
+          DOCS_COMMITTED: ${{ needs.validate.outputs.documentation }}
+        run: |
+          Import-Module $env:MODULE_PATH -Force
+          ConvertTo-GHComplianceSarif -FindingsFile ./compliance-findings.json -OutputFile ./compliance.sarif -Commit $env:RESULT_COMMIT -UsePolicyLocations:($env:DOCS_COMMITTED -ne 'true')
+
+      - name: Upload to code scanning
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        with:
+          sarif_file: compliance.sarif
+          category: github-enterprise-compliance
+          # Point alerts at the docs commit created above, not the commit that triggered the run.
+          sha: ${{ needs.commit_docs.outputs.sha || github.sha }}
+          ref: ${{ github.ref }}
+
+      - name: Summarize SARIF publication
+        shell: bash
+        run: echo 'Compliance results were uploaded to Security > Code scanning.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload SARIF artifact
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: compliance-sarif
+          path: compliance.sarif
+          if-no-files-found: ignore
+
+  summarize:
+    needs: [validate, pester]
+    if: ${{ !cancelled() && needs.validate.result == 'success' && needs.validate.outputs.sarif == 'false' && (needs.validate.outputs.compliance != 'true' || needs.pester.result == 'success') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download findings
+        if: ${{ needs.validate.outputs.compliance == 'true' }}
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: compliance-findings
+
+      - name: Summarize compliance
+        shell: pwsh
+        env:
+          RUN_COMPLIANCE: ${{ needs.validate.outputs.compliance }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $lines = [System.Collections.Generic.List[string]]::new()
+          $lines.Add('## Compliance results')
+          $lines.Add('')
+          if ($env:RUN_COMPLIANCE -ne 'true') {
+            $lines.Add('Compliance tests were not selected; no SARIF was published.')
+          } else {
+            $targets = @(Get-Content ./compliance-findings.json -Raw | ConvertFrom-Json -Depth 20)
+            $failures = @($targets | ForEach-Object { $_.failures } | Where-Object { $_ })
+            $notEvaluated = @($targets | ForEach-Object { $_.notEvaluated } | Where-Object { $_ })
+            $lines.Add('SARIF publishing was not selected.')
+            $lines.Add('')
+            $lines.Add('| Metric | Count |')
+            $lines.Add('| --- | ---: |')
+            $lines.Add("| Targets evaluated | $($targets.Count) |")
+            $lines.Add("| Failed checks | $($failures.Count) |")
+            $lines.Add("| Checks not evaluated | $($notEvaluated.Count) |")
+            foreach ($severity in 'high', 'medium', 'low') {
+              $count = @($failures | Where-Object { $_.severity -eq $severity }).Count
+              $lines.Add("| $severity severity findings | $count |")
+            }
+            if ($failures.Count) {
+              $lines.Add('')
+              $lines.Add('| Failed requirement | Count |')
+              $lines.Add('| --- | ---: |')
+              foreach ($group in @($failures | Group-Object check | Sort-Object Name)) {
+                $name = $group.Name -replace '[\r\n|]', ' '
+                $lines.Add("| ``$name`` | $($group.Count) |")
+              }
+            }
+          }
+          ($lines -join "`n") + "`n" | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
+
+  sync-issues:
+    needs: [validate, pester]
+    if: ${{ needs.validate.outputs.compliance == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Download findings
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: compliance-findings
+
+      - name: Sync compliance issues
+        shell: pwsh
+        env:
+          # The built-in token is enough: issues are created in this (docs) repository.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Import-Module $env:MODULE_PATH -Force
+          Sync-GHComplianceIssue -FindingsFile './compliance-findings.json' -Scope $env:ACCOUNT_SCOPE -Account $env:ACCOUNT_LOGIN

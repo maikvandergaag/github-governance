@@ -1,0 +1,10 @@
+{
+  "id": "enterprise.default-permission-policy",
+  "scope": "enterprise",
+  "title": "Base repository permission is enforced at enterprise level",
+  "remediation": "Enterprise settings > Policies > Repositories > Base permissions: set to No permission or Read.",
+  "dataSource": {
+    "type": "enterprise-owner-info",
+    "fields": "defaultRepositoryPermissionSetting"
+  }
+}

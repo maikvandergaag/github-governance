@@ -1,0 +1,10 @@
+{
+  "id": "enterprise.max-owners",
+  "scope": "enterprise",
+  "title": "Number of enterprise owners is limited",
+  "remediation": "Reduce enterprise owners; use enterprise roles or organization-level roles instead.",
+  "dataSource": {
+    "type": "enterprise-owner-info",
+    "fields": "admins(first: 100, role: OWNER) { totalCount nodes { login } }"
+  }
+}

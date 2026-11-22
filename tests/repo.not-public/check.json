@@ -1,0 +1,9 @@
+{
+  "id": "repo.not-public",
+  "scope": "repo",
+  "title": "Repository is not public",
+  "remediation": "Change visibility to internal/private, or add an exemption in compliance/policy.json if public by design.",
+  "dataSource": {
+    "type": "repository"
+  }
+}

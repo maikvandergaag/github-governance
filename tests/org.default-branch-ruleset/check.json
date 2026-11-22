@@ -1,0 +1,10 @@
+{
+  "id": "org.default-branch-ruleset",
+  "scope": "org",
+  "title": "An active ruleset requires pull requests on default branches",
+  "remediation": "Create an organization ruleset targeting ~DEFAULT_BRANCH with \"Require a pull request before merging\", enforcement Active.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "rulesets"
+  }
+}

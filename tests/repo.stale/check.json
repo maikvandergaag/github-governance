@@ -1,0 +1,9 @@
+{
+  "id": "repo.stale",
+  "scope": "repo",
+  "title": "Repository is actively maintained",
+  "remediation": "Archive the repository if it is no longer used, or add an exemption.",
+  "dataSource": {
+    "type": "repository"
+  }
+}

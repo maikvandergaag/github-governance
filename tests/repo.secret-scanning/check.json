@@ -1,0 +1,9 @@
+{
+  "id": "repo.secret-scanning",
+  "scope": "repo",
+  "title": "Secret scanning is enabled",
+  "remediation": "Attach a code security configuration with secret scanning to this repository.",
+  "dataSource": {
+    "type": "repository"
+  }
+}

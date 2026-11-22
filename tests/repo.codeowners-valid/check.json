@@ -1,0 +1,10 @@
+{
+  "id": "repo.codeowners-valid",
+  "scope": "repo",
+  "title": "CODEOWNERS file has no errors",
+  "remediation": "Fix the reported lines; typically renamed/removed teams or teams without write access.",
+  "dataSource": {
+    "type": "repository",
+    "codeOwners": "valid"
+  }
+}

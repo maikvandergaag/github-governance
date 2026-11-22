@@ -1,0 +1,10 @@
+{
+  "id": "repo.codeowners-present",
+  "scope": "repo",
+  "title": "CODEOWNERS file is present",
+  "remediation": "Add a CODEOWNERS file in .github/, the root or docs/ on the default branch.",
+  "dataSource": {
+    "type": "repository",
+    "codeOwners": "present"
+  }
+}

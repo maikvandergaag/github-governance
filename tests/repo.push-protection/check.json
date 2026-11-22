@@ -1,0 +1,9 @@
+{
+  "id": "repo.push-protection",
+  "scope": "repo",
+  "title": "Secret scanning push protection is enabled",
+  "remediation": "Attach a code security configuration with push protection to this repository.",
+  "dataSource": {
+    "type": "repository"
+  }
+}

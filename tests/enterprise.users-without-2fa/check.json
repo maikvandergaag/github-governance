@@ -1,0 +1,10 @@
+{
+  "id": "enterprise.users-without-2fa",
+  "scope": "enterprise",
+  "title": "No affiliated users without 2FA",
+  "remediation": "Enforce 2FA at enterprise level, or follow up with the users listed under Enterprise settings > People.",
+  "dataSource": {
+    "type": "enterprise-owner-info",
+    "fields": "affiliatedUsersWithTwoFactorDisabledExist"
+  }
+}

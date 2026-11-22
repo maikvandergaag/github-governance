@@ -1,0 +1,10 @@
+{
+  "id": "enterprise.repo-creation-policy",
+  "scope": "enterprise",
+  "title": "Repository creation is restricted at enterprise level",
+  "remediation": "Enterprise settings > Policies > Repositories > Repository creation: enforce a policy without public repositories.",
+  "dataSource": {
+    "type": "enterprise-owner-info",
+    "fields": "membersCanCreateRepositoriesSetting membersCanCreatePublicRepositoriesSetting"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "org.push-protection-new-repos",
+  "scope": "org",
+  "title": "Push protection is enabled for new repositories",
+  "remediation": "Apply a code security configuration with push protection as default for new repositories.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "settings"
+  }
+}

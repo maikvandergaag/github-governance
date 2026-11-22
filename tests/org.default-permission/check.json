@@ -1,0 +1,10 @@
+{
+  "id": "org.default-permission",
+  "scope": "org",
+  "title": "Base repository permission is restricted",
+  "remediation": "Organization settings > Member privileges > Base permissions.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "settings"
+  }
+}

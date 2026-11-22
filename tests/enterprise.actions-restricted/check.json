@@ -1,0 +1,9 @@
+{
+  "id": "enterprise.actions-restricted",
+  "scope": "enterprise",
+  "title": "GitHub Actions are restricted at enterprise level",
+  "remediation": "Enterprise settings > Policies > Actions: allow enterprise and select non-enterprise actions only.",
+  "dataSource": {
+    "type": "enterprise-actions-permissions"
+  }
+}

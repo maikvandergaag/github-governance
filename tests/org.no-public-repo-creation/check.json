@@ -1,0 +1,10 @@
+{
+  "id": "org.no-public-repo-creation",
+  "scope": "org",
+  "title": "Members cannot create public repositories",
+  "remediation": "Organization settings > Member privileges > Repository creation: disable Public.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "settings"
+  }
+}

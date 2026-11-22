@@ -1,0 +1,10 @@
+{
+  "id": "enterprise.ip-allow-list",
+  "scope": "enterprise",
+  "title": "IP allow list is enabled",
+  "remediation": "Enterprise settings > Authentication security > IP allow list: add ranges and enable.",
+  "dataSource": {
+    "type": "enterprise-owner-info",
+    "fields": "ipAllowListEnabledSetting"
+  }
+}

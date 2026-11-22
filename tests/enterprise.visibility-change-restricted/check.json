@@ -1,0 +1,10 @@
+{
+  "id": "enterprise.visibility-change-restricted",
+  "scope": "enterprise",
+  "title": "Repository admins cannot change repository visibility",
+  "remediation": "Enterprise settings > Policies > Repositories > Repository visibility change: Disabled.",
+  "dataSource": {
+    "type": "enterprise-owner-info",
+    "fields": "membersCanChangeRepositoryVisibilitySetting"
+  }
+}

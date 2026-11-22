@@ -1,0 +1,10 @@
+{
+  "id": "org.max-owners",
+  "scope": "org",
+  "title": "Number of organization owners is limited",
+  "remediation": "Reduce owners; use teams with the appropriate (custom) organization roles instead.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "admins"
+  }
+}

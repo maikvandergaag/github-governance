@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "severity": "medium",
+  "params": {
+    "max": 5
+  }
+}

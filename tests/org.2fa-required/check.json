@@ -1,0 +1,10 @@
+{
+  "id": "org.2fa-required",
+  "scope": "org",
+  "title": "Two-factor authentication is required",
+  "remediation": "Organization settings > Authentication security > Require two-factor authentication.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "settings"
+  }
+}
