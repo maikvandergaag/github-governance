@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/maikvandergaag/github-governance/schemas/check-policy.schema.json",
+  "title": "Compliance check policy",
+  "type": "object",
+  "required": ["enabled", "severity"],
+  "properties": {
+    "enabled": { "type": "boolean" },
+    "severity": { "type": "string", "enum": ["high", "medium", "low"] },
+    "params": { "type": "object" }
+  },
+  "additionalProperties": false
+}

@@ -7,6 +7,18 @@
     "type": "organization-section",
     "section": "settings"
   },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "allowed": {
+        "type": "array",
+        "items": { "type": "string", "enum": ["none", "read", "write", "admin"] },
+        "minItems": 1
+      }
+    },
+    "required": ["allowed"],
+    "additionalProperties": false
+  },
   "cis": {
     "benchmark": "CIS GitHub Benchmark",
     "version": "1.2.0",
