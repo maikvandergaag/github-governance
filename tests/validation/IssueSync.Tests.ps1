@@ -127,13 +127,15 @@ Describe 'Per-check issue synchronization' {
             (New-OpenIssue 3 'repo.secret-scanning' 'example/two')
         )
         try {
-            Sync-GHComplianceIssue -Findings @($enterprise, $org, $repo, $resolved) -Repository 'owner/docs' -Token 'docs-token' -IssuesInTargetRepositories 6>$null
+            Sync-GHComplianceIssue -Findings @($enterprise, $org, $repo, $resolved) -Repository 'owner/docs' `
+                -Token 'docs-token' -ApiBaseUrl 'https://api.github.com' -ServerUrl 'https://github.com' `
+                -Branch 'main' -IssuesInTargetRepositories 6>$null
             $created = @($global:IssueSyncCalls | Where-Object { $_.method -eq 'Post' -and $_.uri -match '/issues$' })
             @($created | Where-Object { $_.uri -match '/repos/owner/docs/issues$' -and $_.authorization -eq 'Bearer docs-token' }).Count | Should -Be 2
             $targetIssue = @($created | Where-Object { $_.uri -match '/repos/example/one/issues$' })
             $targetIssue.Count | Should -Be 1
             $targetIssue[0].authorization | Should -Be 'Bearer app-org:example'
-            $targetIssue[0].body.body | Should -Match 'https://github.com/owner/docs/blob/main/docs/example/one.md'
+            $targetIssue[0].body.body | Should -Match ([regex]::Escape('https://github.com/owner/docs/blob/main/docs/example/one.md'))
             @($global:IssueSyncCalls | Where-Object { $_.method -eq 'Patch' -and $_.uri -match '/repos/example/one/issues/4$' -and $_.authorization -eq 'Bearer app-org:example' }).Count | Should -Be 1
             $closed = @($global:IssueSyncCalls | Where-Object { $_.method -eq 'Patch' -and $_.body.state -eq 'closed' })
             $closed.Count | Should -Be 1
