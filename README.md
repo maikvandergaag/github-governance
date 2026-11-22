@@ -80,6 +80,14 @@ Invoke-Pester -Path ./tests/validation
 pwsh ./tests/Invoke-SmokeTest.ps1
 ```
 
+## Publish the tooling documentation
+
+To publish this handbook, select **GitHub Actions** as the source in **Settings > Pages**.
+The Pages workflow builds and deploys after pushes to `main` and can also be started manually
+from `main`. It publishes the toolkit documentation and check guidance, not the generated
+`docs/output/` inventory or snapshots. Review Pages visibility and access controls before
+enabling it, particularly in copies containing organization-specific documentation.
+
 ## Community
 
 Use the repository's GitHub issues to ask for help, report bugs, or suggest checks and improvements.
