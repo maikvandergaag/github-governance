@@ -16,7 +16,7 @@ Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser
 
 ## GitHub App
 
-Create a GitHub App owned by the enterprise, standalone organization or personal account for read-only
+Create a GitHub App owned by the enterprise, standalone organization or personal account for
 collection. Disable webhooks and callbacks.
 Keep its private key in the Actions environment secret described in [Setup](03-setup.md).
 
@@ -32,9 +32,10 @@ endpoint.
 
 ## Write permissions
 
-The reader App does not need write access. The workflow's `GITHUB_TOKEN` separately writes generated
-documentation, compliance issues and SARIF results. Repository and organization policy must allow
-those workflow-token permissions; see [Setup](03-setup.md#repository-settings).
+The workflow's `GITHUB_TOKEN` writes generated documentation, centralized compliance issues and
+SARIF results. If repository issues are routed to their target repositories, the App also needs
+repository **Issues: read and write** permission and access to those repositories. Repository and
+organization policy must allow the workflow-token permissions; see [Setup](03-setup.md#repository-settings).
 
 ## Data residency
 

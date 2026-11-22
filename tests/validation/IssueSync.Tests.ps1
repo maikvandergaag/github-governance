@@ -26,6 +26,7 @@ Describe 'Per-check issue synchronization' {
     BeforeEach {
         $global:IssueSyncCalls = [System.Collections.Generic.List[object]]::new()
         $global:IssueSyncOpen = @()
+        $global:IssueSyncOpenByRepo = @{}
         $global:IssueSyncLabels = @()
         $global:IssueSyncSleeps = [System.Collections.Generic.List[int]]::new()
         Mock Start-Sleep -ModuleName GitHubGovernance {
@@ -33,9 +34,9 @@ Describe 'Per-check issue synchronization' {
             $global:IssueSyncSleeps.Add($Seconds)
         }
         Mock Invoke-RestMethod -ModuleName GitHubGovernance {
-            param($Uri, $Method, $Body)
+            param($Uri, $Method, $Body, $Headers)
             $global:IssueSyncCalls.Add([pscustomobject]@{
-                    uri = $Uri; method = $Method
+                    uri = $Uri; method = $Method; authorization = $Headers.Authorization
                     body = $(if ($Body) {
                             $Body | ConvertFrom-Json
                         } else {
@@ -46,6 +47,11 @@ Describe 'Per-check issue synchronization' {
                 if ($Uri -match '/labels\?') {
                     return $global:IssueSyncLabels
                 }
+                foreach ($repository in $global:IssueSyncOpenByRepo.Keys) {
+                    if ($Uri -like "*/repos/$repository/issues?*") {
+                        return $global:IssueSyncOpenByRepo[$repository]
+                    }
+                }
                 return $global:IssueSyncOpen
             }
             return [pscustomobject]@{}
@@ -53,7 +59,7 @@ Describe 'Per-check issue synchronization' {
     }
 
     AfterAll {
-        Remove-Variable IssueSyncCalls, IssueSyncOpen, IssueSyncLabels, IssueSyncSleeps, IssueSyncAttempts,
+        Remove-Variable IssueSyncCalls, IssueSyncOpen, IssueSyncOpenByRepo, IssueSyncLabels, IssueSyncSleeps, IssueSyncAttempts,
         IssueSyncRateHeader, IssueSyncRateValue -Scope Global -ErrorAction SilentlyContinue
     }
 
@@ -89,6 +95,115 @@ Describe 'Per-check issue synchronization' {
         $updates = @($global:IssueSyncCalls | Where-Object { $_.method -eq 'Patch' })
         @($updates | Where-Object { $_.uri -match '/issues/1$' -and $_.body.body -match 'org.2fa-required' }).Count | Should -Be 1
         @($updates | Where-Object { $_.uri -match '/issues/2$' -and $_.body.state -eq 'closed' }).Count | Should -Be 1
+    }
+
+    It 'routes repository issues to their targets and keeps centralized repository issues untouched' {
+        & (Get-Module GitHubGovernance) {
+            $script:Connection = [pscustomobject]@{ Scope = 'enterprise' }
+            $script:AuthMode = 'App'
+            $script:ApiBaseUrl = 'https://api.github.com'
+        }
+        Mock Get-RequestHeaders -ModuleName GitHubGovernance {
+            param($Scope)
+            return @{ Authorization = "Bearer app-$Scope"; Accept = 'application/vnd.github+json' }
+        }
+        $org = New-Target @((New-Failure 'org.2fa-required'))
+        $enterprise = [pscustomobject]@{
+            id = 'enterprise:example'; type = 'enterprise'; org = 'example'; docs = 'docs/enterprise.md'
+            failures = @((New-Failure 'enterprise.max-owners')); notEvaluated = @()
+        }
+        $repo = [pscustomobject]@{
+            id = 'example/one'; type = 'repo'; org = 'example'; docs = 'docs/example/one.md'
+            failures = @((New-Failure 'repo.stale'), (New-Failure 'repo.readme-present')); notEvaluated = @()
+        }
+        $resolved = [pscustomobject]@{
+            id = 'example/two'; type = 'repo'; org = 'example'; docs = 'docs/example/two.md'
+            failures = @(); notEvaluated = @([pscustomobject]@{ check = 'repo.secret-scanning' })
+        }
+        $global:IssueSyncOpenByRepo['owner/docs'] = @((New-OpenIssue 1 'repo.stale' 'example/one'))
+        $global:IssueSyncOpenByRepo['example/one'] = @((New-OpenIssue 4 'repo.readme-present' 'example/one'))
+        $global:IssueSyncOpenByRepo['example/two'] = @(
+            (New-OpenIssue 2 'repo.stale' 'example/two'),
+            (New-OpenIssue 3 'repo.secret-scanning' 'example/two')
+        )
+        try {
+            Sync-GHComplianceIssue -Findings @($enterprise, $org, $repo, $resolved) -Repository 'owner/docs' `
+                -Token 'docs-token' -ApiBaseUrl 'https://api.github.com' -ServerUrl 'https://github.com' `
+                -Branch 'main' -IssuesInTargetRepositories 6>$null
+            $created = @($global:IssueSyncCalls | Where-Object { $_.method -eq 'Post' -and $_.uri -match '/issues$' })
+            @($created | Where-Object { $_.uri -match '/repos/owner/docs/issues$' -and $_.authorization -eq 'Bearer docs-token' }).Count | Should -Be 2
+            $targetIssue = @($created | Where-Object { $_.uri -match '/repos/example/one/issues$' })
+            $targetIssue.Count | Should -Be 1
+            $targetIssue[0].authorization | Should -Be 'Bearer app-org:example'
+            $targetIssue[0].body.body | Should -Match ([regex]::Escape('https://github.com/owner/docs/blob/main/docs/example/one.md'))
+            @($global:IssueSyncCalls | Where-Object { $_.method -eq 'Patch' -and $_.uri -match '/repos/example/one/issues/4$' -and $_.authorization -eq 'Bearer app-org:example' }).Count | Should -Be 1
+            $closed = @($global:IssueSyncCalls | Where-Object { $_.method -eq 'Patch' -and $_.body.state -eq 'closed' })
+            $closed.Count | Should -Be 1
+            $closed[0].uri | Should -Match '/repos/example/two/issues/2$'
+            @($global:IssueSyncCalls | Where-Object { $_.uri -match '/repos/owner/docs/issues/1' }).Count | Should -Be 0
+        } finally {
+            Disconnect-GHGovernance
+        }
+    }
+
+    It 'requires matching App authentication for target repository issues' {
+        & (Get-Module GitHubGovernance) {
+            $script:Connection = [pscustomobject]@{ Scope = 'enterprise' }
+            $script:AuthMode = 'App'
+            $script:ApiBaseUrl = 'https://api.github.com'
+        }
+        try {
+            { Sync-GHComplianceIssue -Findings (New-Target) -Repository 'owner/docs' -Token 'fake' -IssuesInTargetRepositories -ApiBaseUrl 'https://other.example' } |
+                Should -Throw '*must match*'
+            $global:IssueSyncCalls.Count | Should -Be 0
+        } finally {
+            Disconnect-GHGovernance
+        }
+    }
+
+    It 'fails explicitly when a target installation token is unavailable' {
+        $originalApiUrl = $env:GITHUB_API_URL
+        $env:GITHUB_API_URL = 'https://mirror.example/api/v3'
+        & (Get-Module GitHubGovernance) {
+            $script:Connection = [pscustomobject]@{ Scope = 'enterprise' }
+            $script:AuthMode = 'App'
+            $script:ApiBaseUrl = 'https://api.github.com'
+        }
+        Mock Get-RequestHeaders -ModuleName GitHubGovernance { return $null }
+        $repo = [pscustomobject]@{
+            id = 'example/repo'; type = 'repo'; org = 'example'; docs = 'docs/repo.md'
+            failures = @(); notEvaluated = @()
+        }
+        try {
+            { Sync-GHComplianceIssue -Findings $repo -Repository 'owner/docs' -Token 'fake' -ApiBaseUrl 'https://api.github.com' -IssuesInTargetRepositories 6>$null } |
+                Should -Throw '*No GitHub App installation token for example/repo*'
+        } finally {
+            $env:GITHUB_API_URL = $originalApiUrl
+            Disconnect-GHGovernance
+        }
+    }
+
+    It 'applies the new issue limit across all destinations' {
+        & (Get-Module GitHubGovernance) {
+            $script:Connection = [pscustomobject]@{ Scope = 'enterprise' }
+            $script:AuthMode = 'App'
+            $script:ApiBaseUrl = 'https://api.github.com'
+        }
+        Mock Get-RequestHeaders -ModuleName GitHubGovernance {
+            return @{ Authorization = 'Bearer app-token' }
+        }
+        $repo = [pscustomobject]@{
+            id = 'example/repo'; type = 'repo'; org = 'example'; docs = 'docs/repo.md'
+            failures = @((New-Failure 'repo.stale')); notEvaluated = @()
+        }
+        try {
+            Sync-GHComplianceIssue -Findings @((New-Target @((New-Failure 'org.2fa-required'))), $repo) `
+                -Repository 'owner/docs' -Token 'fake' -ApiBaseUrl 'https://api.github.com' `
+                -IssuesInTargetRepositories -MaxNewIssues 1 -WarningAction SilentlyContinue 6>$null
+            @($global:IssueSyncCalls | Where-Object { $_.method -eq 'Post' -and $_.uri -match '/issues$' }).Count | Should -Be 1
+        } finally {
+            Disconnect-GHGovernance
+        }
     }
 
     It 'does not update an unchanged issue on the next run' {

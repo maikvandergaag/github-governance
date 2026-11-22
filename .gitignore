@@ -3,6 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# Generated documentation is published by the workflow.
+/docs/output/*
+!/docs/output/.gitkeep
+
 # User-specific files
 *.rsuser
 *.suo
