@@ -33,6 +33,8 @@ jobs:
       - name: Configure GitHub Pages
         id: pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Test documentation staging
+        run: python -m unittest discover -s tests -p 'test_stage_linked_docs.py'
       - name: Prepare documentation
         env:
           SOURCE_URL: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}
@@ -58,6 +60,7 @@ jobs:
           mv "$RUNNER_TEMP/operations.md" "$RUNNER_TEMP/pages-src/docs/configuration/07-operations-and-troubleshooting.md"
           sed "s|../../tests/|${TREE_URL}/tests/|g" "$RUNNER_TEMP/pages-src/docs/repo/README.md" > "$RUNNER_TEMP/repo.md"
           mv "$RUNNER_TEMP/repo.md" "$RUNNER_TEMP/pages-src/docs/repo/README.md"
+          python .github/scripts/stage-linked-docs.py "$GITHUB_WORKSPACE" "$RUNNER_TEMP/pages-src"
           cp mkdocs.yml "$RUNNER_TEMP/mkdocs.yml"
       - name: Build site
         env:
