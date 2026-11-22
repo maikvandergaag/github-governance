@@ -40,7 +40,9 @@ The manifest provides the information needed to register, report and evaluate th
 ```
 
 See [Check manifest reference](reference/check-manifest.md) for supported data sources and exact
-fields.
+fields. When a check relates to the CIS GitHub Benchmark, record its version and recommendation
+numbers in the optional `cis` metadata. Mark partial coverage explicitly and describe any manual
+review needed in the issue template.
 
 ## Local policy
 
@@ -70,6 +72,17 @@ for the manifest's scope. Use the existing checks as examples of the input shape
 The Pester `Describe` must contain exactly one compliance `It` assertion. The workflow evaluates the
 policy once and gives its result to that assertion. Individual live test runs call
 `Invoke-GHComplianceCheck` and require an active GitHub App connection.
+
+Every check must run independently: do not rely on another check executing first or populating a
+cache. Shared helpers are allowed; caching is an optional optimization within a combined run.
+For example, after connecting the App and setting `GHE_ORGANIZATION` and `GHE_REPOSITORY`, each
+root-file check can be run on its own:
+
+```powershell
+Invoke-Pester -Path ./tests/repo.gitignore-present/repo.gitignore-present.Tests.ps1
+Invoke-Pester -Path ./tests/repo.gitattributes-present/repo.gitattributes-present.Tests.ps1
+Invoke-Pester -Path ./tests/repo.readme-present/repo.readme-present.Tests.ps1
+```
 
 Use an existing check folder as a starting point, keeping the `-PolicyOnly` path and `It` assertion
 consistent with the existing conventions.

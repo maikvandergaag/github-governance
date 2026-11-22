@@ -6,11 +6,21 @@ $PolicyCheck = {
     if ($null -eq $hooks) {
         return NotEvaluated 'Webhooks not available.'
     }
-    $insecure = @($hooks | Where-Object { (Get-Prop $_ 'config.insecure_ssl') -eq '1' } | ForEach-Object { Get-Prop $_ 'config.url' })
+    $insecure = @()
+    foreach ($hook in $hooks) {
+        $url = Get-Prop $hook 'config.url'
+        $verify = Get-Prop $hook 'config.insecure_ssl'
+        $uri = $null
+        if ([string]::IsNullOrWhiteSpace($url) -or -not [uri]::TryCreate($url, [UriKind]::Absolute, [ref]$uri) -or
+            [string]$verify -notin @('0', '1')) {
+            return NotEvaluated 'A webhook URL or its TLS verification setting was not returned.'
+        }
+        if ($uri.Scheme -ne 'https' -or [string]$verify -eq '1') { $insecure += $url }
+    }
     if ($insecure.Count -eq 0) {
         Pass
     } else {
-        Fail "TLS verification disabled for: $($insecure -join ', ')"
+        Fail "HTTPS or TLS verification is not enabled for: $($insecure -join ', ')"
     }
 }
 

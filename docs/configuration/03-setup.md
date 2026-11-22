@@ -14,11 +14,11 @@ Add these repository or environment variables under **Settings > Secrets and var
 | `ENTERPRISE_SLUG` | Enterprise mode | Enterprise slug from `github.com/enterprises/<slug>` |
 | `ACCOUNT_LOGIN` | Organization or user mode | Organization or personal account login |
 | `ACCOUNT_SCOPE` | No | Scheduled-run mode: `enterprise` (default), `organization`, or `user`; manual runs use the dropdown |
-| `DOCS_APP_CLIENT_ID` | Yes | GitHub App client ID (starts with `Iv`) |
+| `GH_APP_CLIENT_ID` | Yes | GitHub App client ID (starts with `Iv`) |
 | `ENTERPRISE_API_URL` | GHE.com only | `https://api.<subdomain>.ghe.com`; empty defaults to `https://api.github.com` |
 | `DOCS_PUBLISH_MODE` | No | `pull_request` (default) proposes generated documentation; `direct` pushes it to the run's branch. |
 
-Create the `enterprise-compliance` environment and add `DOCS_APP_PRIVATE_KEY` as an environment
+Create the `enterprise-compliance` environment and add `GH_APP_PRIVATE_KEY` as an environment
 secret containing the complete PEM private key. Do not commit the key or store it in a plain
 repository variable.
 
@@ -52,9 +52,8 @@ and repository policies permit the chosen credential and workflow events.
 1. Review [Compliance policy](04-policy.md) and [Exemptions](05-exemptions.md).
 2. Start **Actions > Check - GitHub Enterprise > Run workflow** and select the account mode and desired
    actions. The default is enterprise mode with documentation, tests and SARIF enabled.
-3. Review and merge the documentation PR when using the default publishing mode. Then review
-   `docs/enterprise/README.md` for missing App installations and unavailable sections.
-4. Review `docs/enterprise/compliance/README.md`, issues and **Security > Code scanning** for findings.
+3. Review `docs/output/README.md` for missing App installations and unavailable sections.
+4. Review `docs/output/compliance/README.md`, issues and **Security > Code scanning** for findings.
 5. Adjust policy or exemptions and run the workflow again.
 
 The issue sync creates at most 150 new issues per run. Subsequent runs continue with remaining

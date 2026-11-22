@@ -1,0 +1,18 @@
+{
+  "id": "org.repo-deletion-restricted",
+  "scope": "org",
+  "title": "Restrict repository deletion",
+  "remediation": "Disable repository deletion and transfer by repository administrators in member privileges.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "settings"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.2.3"
+    ],
+    "coverage": "partial"
+  }
+}

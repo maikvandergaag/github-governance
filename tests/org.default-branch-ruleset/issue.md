@@ -6,6 +6,8 @@
 
 Without a pull-request requirement, changes may reach default branches without review.
 
+**Benchmark:** CIS GitHub Benchmark v1.2.0, `1.1.3`, `1.1.20`. This check covers only part of the recommendation; complete the remaining review manually.
+
 ### Remediation
 
 - [ ] Create an active organization ruleset targeting `~DEFAULT_BRANCH` with "Require a pull request before merging".

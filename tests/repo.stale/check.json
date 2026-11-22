@@ -5,5 +5,13 @@
   "remediation": "Archive the repository if it is no longer used, or add an exemption.",
   "dataSource": {
     "type": "repository"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.2.7"
+    ],
+    "coverage": "partial"
   }
 }

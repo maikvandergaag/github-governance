@@ -72,6 +72,16 @@ Describe 'Per-check issue synchronization' {
         $created[1].body.body | Should -Match 'interception or tampering'
     }
 
+    It 'includes CIS identification and manual review in partial-control issues' {
+        $target = New-Target @((New-Failure 'org.apps-selected-repositories' 'One app has broad access'))
+        Sync-GHComplianceIssue -Findings $target -Repository 'owner/docs' -Token 'fake' 6>$null
+        $issue = @($global:IssueSyncCalls | Where-Object { $_.method -eq 'Post' -and $_.uri -match '/issues$' })[0].body.body
+        $issue | Should -Match '1\.4\.3'
+        $issue | Should -Match 'partial assessment'
+        $issue | Should -Match 'Review each app permission'
+        $issue | Should -Match 'One app has broad access'
+    }
+
     It 'updates the matching check and closes only a different resolved check' {
         $global:IssueSyncOpen = @((New-OpenIssue 1 'org.2fa-required'), (New-OpenIssue 2 'org.webhooks-tls'))
         $target = New-Target @((New-Failure 'org.2fa-required'))

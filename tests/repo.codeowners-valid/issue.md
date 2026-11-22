@@ -6,6 +6,8 @@
 
 Invalid CODEOWNERS entries may prevent intended owners from being requested for review.
 
+**Benchmark:** CIS GitHub Benchmark v1.2.0, `1.1.6`. This check covers only part of the recommendation; complete the remaining review manually.
+
 ### Remediation
 
 - [ ] Fix the reported lines, including renamed or removed teams and teams without write access.

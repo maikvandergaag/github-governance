@@ -1,0 +1,17 @@
+{
+  "id": "repo.deny-branch-deletion",
+  "scope": "repo",
+  "title": "Deny default branch deletion",
+  "remediation": "Prevent deletion of the default branch.",
+  "dataSource": {
+    "type": "repository-branch-rules"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.1.17"
+    ],
+    "coverage": "partial"
+  }
+}

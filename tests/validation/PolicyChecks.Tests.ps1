@@ -5,6 +5,7 @@ BeforeDiscovery {
         @{ id = 'enterprise.default-permission-policy'; kind = 'owner'; field = 'defaultRepositoryPermissionSetting'; good = 'READ'; bad = 'ADMIN' }
         @{ id = 'enterprise.repo-creation-policy'; kind = 'ownerObject'; good = @{ membersCanCreateRepositoriesSetting = 'DISABLED'; membersCanCreatePublicRepositoriesSetting = $false }; bad = @{ membersCanCreateRepositoriesSetting = 'NO_POLICY'; membersCanCreatePublicRepositoriesSetting = $true } }
         @{ id = 'enterprise.repo-deletion-restricted'; kind = 'owner'; field = 'membersCanDeleteRepositoriesSetting'; good = 'DISABLED'; bad = 'ENABLED' }
+        @{ id = 'enterprise.issue-deletion-restricted'; kind = 'owner'; field = 'membersCanDeleteIssuesSetting'; good = 'DISABLED'; bad = 'ENABLED' }
         @{ id = 'enterprise.visibility-change-restricted'; kind = 'owner'; field = 'membersCanChangeRepositoryVisibilitySetting'; good = 'DISABLED'; bad = 'ENABLED' }
         @{ id = 'enterprise.ip-allow-list'; kind = 'owner'; field = 'ipAllowListEnabledSetting'; good = 'ENABLED'; bad = 'DISABLED' }
         @{ id = 'enterprise.max-owners'; kind = 'owner'; field = 'admins'; good = @{ totalCount = 1; nodes = @(@{ login = 'one' }) }; bad = @{ totalCount = 4; nodes = @(@{ login = 'one' }) } }
@@ -12,7 +13,10 @@ BeforeDiscovery {
         @{ id = 'org.2fa-required'; kind = 'setting'; field = 'two_factor_requirement_enabled'; good = $true; bad = $false }
         @{ id = 'org.default-permission'; kind = 'setting'; field = 'default_repository_permission'; good = 'read'; bad = 'admin' }
         @{ id = 'org.no-public-repo-creation'; kind = 'setting'; field = 'members_can_create_public_repositories'; good = $false; bad = $true }
-        @{ id = 'org.push-protection-new-repos'; kind = 'setting'; field = 'secret_scanning_push_protection_enabled_for_new_repositories'; good = $true; bad = $false }
+        @{ id = 'org.repo-creation-restricted'; kind = 'settingObject'; good = @{ members_can_create_public_repositories = $false; members_can_create_private_repositories = $false }; bad = @{ members_can_create_public_repositories = $false; members_can_create_private_repositories = $true } }
+        @{ id = 'org.dependabot-alerts-new-repos'; kind = 'securityDefault'; field = 'dependabot_alerts'; good = 'enabled'; bad = 'disabled' }
+        @{ id = 'org.secret-scanning-new-repos'; kind = 'securityDefault'; field = 'secret_scanning'; good = 'enabled'; bad = 'disabled' }
+        @{ id = 'org.push-protection-new-repos'; kind = 'securityDefault'; field = 'secret_scanning_push_protection'; good = 'enabled'; bad = 'disabled' }
         @{ id = 'org.actions-restricted'; kind = 'actions'; good = 'selected'; bad = 'all' }
         @{ id = 'org.webhooks-tls'; kind = 'webhooks'; good = '0'; bad = '1' }
         @{ id = 'org.max-owners'; kind = 'admins'; good = 1; bad = 6 }
@@ -85,6 +89,12 @@ Describe 'Live policy checks' {
                 'setting' {
                     $data = @{ $script:case.field = $item }
                 }
+                'settingObject' {
+                    $data = $item
+                }
+                'securityDefault' {
+                    $data = @(@{ default_for_new_repos = 'all'; configuration = @{ $script:case.field = $item } })
+                }
                 'webhooks' {
                     $data = @(@{ config = @{ insecure_ssl = $item; url = 'https://hooks.example' } })
                 }
@@ -134,5 +144,20 @@ Describe 'Live policy checks' {
         (Invoke-GHComplianceCheck @args).status | Should -Be 'fail'
         $script:unavailable = $true
         (Invoke-GHComplianceCheck @args).status | Should -Be 'na'
+    }
+
+    It 'evaluates repository creation conservatively for <label>' -ForEach @(
+        @{ label = 'public creation enabled'; public = $true; private = $false; expected = 'fail' }
+        @{ label = 'private creation missing'; public = $false; private = $null; expected = 'na' }
+        @{ label = 'non-boolean setting'; public = 'false'; private = $false; expected = 'na' }
+    ) {
+        $script:settingsFixture = [pscustomobject]@{
+            members_can_create_public_repositories = $public
+            members_can_create_private_repositories = $private
+        }
+        Mock Invoke-GitHubRest -ModuleName GitHubGovernance {
+            [pscustomobject]@{ Ok = $true; Status = 200; Data = $script:settingsFixture }
+        }
+        (Invoke-GHComplianceCheck -CheckId 'org.repo-creation-restricted' -Organization 'org-a').status | Should -Be $expected
     }
 }

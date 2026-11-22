@@ -75,11 +75,11 @@ Describe 'Compliance workflow stages' {
         $script = Get-WorkflowStepScript 'Validate configuration'
         { Invoke-WorkflowStepFixture $script } | Should -Not -Throw
         { Invoke-WorkflowStepFixture $script @{ ENTERPRISE_SLUG = ''; GH_APP_PRIVATE_KEY = '' } } |
-            Should -Throw '*ENTERPRISE_SLUG*DOCS_APP_PRIVATE_KEY*'
+            Should -Throw '*ENTERPRISE_SLUG*GH_APP_PRIVATE_KEY*'
         { Invoke-WorkflowStepFixture $script @{ ACCOUNT_SCOPE = 'user'; ACCOUNT_LOGIN = '' } } |
             Should -Throw '*ACCOUNT_LOGIN*'
         { Invoke-WorkflowStepFixture $script @{ GH_APP_CLIENT_ID = ''; GITHUB_TOKEN = '' } } |
-            Should -Throw '*DOCS_APP_CLIENT_ID*GITHUB_TOKEN*'
+            Should -Throw '*GH_APP_CLIENT_ID*GITHUB_TOKEN*'
         { Invoke-WorkflowStepFixture $script @{ ENTERPRISE_API_URL = 'http://example.test' } } |
             Should -Throw '*HTTPS URL*'
         { Invoke-WorkflowStepFixture $script @{ ACCOUNT_SCOPE = 'invalid' } } |
@@ -204,12 +204,12 @@ Describe 'Compliance workflow stages' {
         $source = Join-Path $TestDrive 'source'
         $evaluation = Join-Path $TestDrive 'evaluation'
         $destination = Join-Path $TestDrive 'destination'
-        New-Item -ItemType Directory -Path "$source/docs/enterprise" -Force | Out-Null
+        New-Item -ItemType Directory -Path "$source/docs/output" -Force | Out-Null
         & git -C $source init -q
-        Set-Content "$source/docs/enterprise/changed.md" 'old'
-        Set-Content "$source/docs/enterprise/removed.md" 'old'
-        New-Item -ItemType Directory -Path "$source/docs/enterprise/compliance" | Out-Null
-        Set-Content "$source/docs/enterprise/compliance/README.md" 'old report'
+        Set-Content "$source/docs/output/changed.md" 'old'
+        Set-Content "$source/docs/output/removed.md" 'old'
+        New-Item -ItemType Directory -Path "$source/docs/output/compliance" | Out-Null
+        Set-Content "$source/docs/output/compliance/README.md" 'old report'
         & git -C $source add .
         & git -C $source -c user.name=Fixture -c user.email=fixture@example.invalid commit -qm fixture
         if ($LASTEXITCODE -ne 0) {
@@ -221,18 +221,18 @@ Describe 'Compliance workflow stages' {
         }
         & git clone -q $source $evaluation
         if ($LASTEXITCODE -ne 0) { throw 'Could not clone the Pester test fixture.' }
-        Set-Content "$source/docs/enterprise/changed.md" 'new'
-        Remove-Item "$source/docs/enterprise/removed.md"
-        Set-Content "$source/docs/enterprise/added.md" 'added'
+        Set-Content "$source/docs/output/changed.md" 'new'
+        Remove-Item "$source/docs/output/removed.md"
+        Set-Content "$source/docs/output/added.md" 'added'
         $previousOutputPath = $env:OUTPUT_PATH
         try {
-            $env:OUTPUT_PATH = 'docs/enterprise'
+            $env:OUTPUT_PATH = 'docs/output'
             Invoke-BashStep $source (Get-BashStepScript $inventory 'Prepare documentation patch')
             Copy-Item "$source/generated-docs.patch" "$evaluation/generated-docs.patch"
             Invoke-BashStep $evaluation (Get-BashStepScript $pester 'Restore documentation')
-            Get-Content "$evaluation/docs/enterprise/added.md" | Should -Be 'added'
-            Test-Path "$evaluation/docs/enterprise/removed.md" | Should -BeFalse
-            Set-Content "$evaluation/docs/enterprise/compliance/README.md" 'new report'
+            Get-Content "$evaluation/docs/output/added.md" | Should -Be 'added'
+            Test-Path "$evaluation/docs/output/removed.md" | Should -BeFalse
+            Set-Content "$evaluation/docs/output/compliance/README.md" 'new report'
             Set-Content "$evaluation/compliance-findings.json" '[]'
             Invoke-BashStep $evaluation (Get-BashStepScript $pester 'Prepare generated documentation')
         } finally {
@@ -240,10 +240,10 @@ Describe 'Compliance workflow stages' {
         }
         & git -C $destination apply --index --whitespace=nowarn "$evaluation/enterprise-docs.patch"
         $LASTEXITCODE | Should -Be 0
-        Get-Content "$destination/docs/enterprise/changed.md" | Should -Be 'new'
-        Get-Content "$destination/docs/enterprise/added.md" | Should -Be 'added'
-        Test-Path "$destination/docs/enterprise/removed.md" | Should -BeFalse
-        Get-Content "$destination/docs/enterprise/compliance/README.md" | Should -Be 'new report'
+        Get-Content "$destination/docs/output/changed.md" | Should -Be 'new'
+        Get-Content "$destination/docs/output/added.md" | Should -Be 'added'
+        Test-Path "$destination/docs/output/removed.md" | Should -BeFalse
+        Get-Content "$destination/docs/output/compliance/README.md" | Should -Be 'new report'
     }
 
     It 'accepts an empty documentation patch' {
@@ -259,24 +259,24 @@ Describe 'Compliance workflow stages' {
         $source = Join-Path $TestDrive "source-$Mode"
         $remote = Join-Path $TestDrive "remote-$Mode.git"
         $destination = Join-Path $TestDrive "commit-$Mode"
-        New-Item -ItemType Directory -Path "$source/docs/enterprise/compliance" -Force | Out-Null
+        New-Item -ItemType Directory -Path "$source/docs/output/compliance" -Force | Out-Null
         & git -C $source init -q
-        Set-Content "$source/docs/enterprise/page.md" 'old page'
-        Set-Content "$source/docs/enterprise/compliance/README.md" 'old report'
+        Set-Content "$source/docs/output/page.md" 'old page'
+        Set-Content "$source/docs/output/compliance/README.md" 'old report'
         & git -C $source add .
         & git -C $source -c user.name=Fixture -c user.email=fixture@example.invalid commit -qm fixture
         & git clone --bare -q $source $remote
         & git clone -q $remote $destination
         if ($LASTEXITCODE -ne 0) { throw 'Could not create the commit test fixture.' }
-        Set-Content "$source/docs/enterprise/page.md" 'new page'
+        Set-Content "$source/docs/output/page.md" 'new page'
 
         $keys = @('OUTPUT_PATH', 'RUN_COMPLIANCE', 'DOCS_PUBLISH_MODE', 'GITHUB_OUTPUT', 'GITHUB_STEP_SUMMARY')
         $previous = @{}
         foreach ($key in $keys) { $previous[$key] = [Environment]::GetEnvironmentVariable($key) }
         try {
-            $env:OUTPUT_PATH = 'docs/enterprise'
+            $env:OUTPUT_PATH = 'docs/output'
             Invoke-BashStep $source (Get-BashStepScript $inventory 'Prepare documentation patch')
-            Set-Content "$source/docs/enterprise/compliance/README.md" 'new report'
+            Set-Content "$source/docs/output/compliance/README.md" 'new report'
             Set-Content "$source/compliance-findings.json" '[]'
             Invoke-BashStep $source (Get-BashStepScript $pester 'Prepare generated documentation')
             Copy-Item "$source/generated-docs.patch" "$destination/generated-docs.patch"
@@ -286,8 +286,8 @@ Describe 'Compliance workflow stages' {
             $env:GITHUB_OUTPUT = Join-Path $TestDrive "output-$Mode"
             $env:GITHUB_STEP_SUMMARY = Join-Path $TestDrive "summary-$Mode"
             Invoke-BashStep $destination (Get-BashStepScript $commitDocs 'Commit changes')
-            Get-Content "$destination/docs/enterprise/page.md" | Should -Be 'new page'
-            Get-Content "$destination/docs/enterprise/compliance/README.md" | Should -Be $ExpectedReport
+            Get-Content "$destination/docs/output/page.md" | Should -Be 'new page'
+            Get-Content "$destination/docs/output/compliance/README.md" | Should -Be $ExpectedReport
             $sha = (& git -C $destination rev-parse HEAD).Trim()
             Get-Content $env:GITHUB_OUTPUT | Should -Contain "sha=$sha"
             @(Get-Content $env:GITHUB_OUTPUT)[-1] | Should -Be 'docs_committed=true'
@@ -416,7 +416,7 @@ esac
 
     It 'points SARIF to committed policy when documentation is not published' {
         $finding = [pscustomobject]@{
-            id = 'org/repo'; type = 'repo'; org = 'org'; repo = 'repo'; docs = 'docs/enterprise/organizations/org/repositories.md'
+            id = 'org/repo'; type = 'repo'; org = 'org'; repo = 'repo'; docs = 'docs/output/organizations/org/repositories.md'
             failures = @([pscustomobject]@{
                     check = 'repo.not-public'; severity = 'high'; title = 'Repository is private'
                     detail = 'Repository is public'; remediation = 'Make it private.'

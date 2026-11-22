@@ -2,6 +2,7 @@
 
 [Home](../../README.md) · [Configuration handbook](../configuration/README.md) · [Example](../example.md) · [Setup guide](SETUP.md)
 
+
 Automatically generates Markdown documentation of a GitHub Enterprise Cloud environment,
 a standalone organization, or a personal account on a weekly schedule. By default, updates are
 proposed in a pull request; direct publishing is configurable. Git history becomes the change log
@@ -26,7 +27,7 @@ Output (full description in the handbook's
 [generated documentation layout](../configuration/07-operations-and-troubleshooting.md#generated-documentation-layout)):
 
 ```
-docs/enterprise/
+docs/output/
 ├── README.md              index
 ├── enterprise/            enterprise configuration (policies & access, rulesets, actions, security)
 ├── organizations/<org>/   one folder per organization, one page per topic (+ codeowners.md)
@@ -53,8 +54,10 @@ under `tests/` (or the path supplied with `-TestsPath`).
 For CODEOWNERS checks and nonempty organization rulesets, snapshots created before
 collection-completeness markers were added are reported as not evaluated; regenerate the snapshots
 to evaluate those checks.
+
 It writes a findings report to `docs/enterprise/compliance/README.md`
 (proposed or committed when documentation is selected). `Sync-GHComplianceIssue` manages issues in **this** repository:
+
 
 - One issue per failed check and affected enterprise, organization or repository, labelled `compliance`, `compliance:enterprise|org|repo` and the check's `severity:<level>`.
 - Issue text comes from `tests/<check-id>/issue.md`. Templates support `{{target}}`, `{{target_url}}`, `{{docs_url}}`, `{{check}}`, `{{severity}}` and `{{finding}}`; the sync adds hidden markers for tracking.
@@ -121,7 +124,7 @@ Local dry run:
 Import-Module ./src/GitHubGovernance/GitHubGovernance.psd1
 Connect-GHGovernance -Enterprise $env:ENTERPRISE_SLUG -AppClientId $env:GH_APP_CLIENT_ID -AppPrivateKey $env:GH_APP_PRIVATE_KEY
 try {
-    Test-GHCompliance -UsePester -DataPath ./docs/enterprise/_data | Sync-GHComplianceIssue -Repository contoso/github-docs -DryRun
+    Test-GHCompliance -UsePester -DataPath ./docs/output/_data | Sync-GHComplianceIssue -Repository contoso/github-docs -DryRun
 }
 finally { Disconnect-GHGovernance }
 ```
@@ -164,10 +167,15 @@ Connect-GHGovernance -Enterprise contoso -AppClientId 'Iv23li...' -AppPrivateKey
 # or: Connect-GHGovernance -Enterprise contoso -Token $pat
 
 Get-GHOrganization | Get-GHOrganizationMember -Role Admin
-Export-GHDocumentation -OutputPath ./docs/enterprise -Organization my-org -SkipRepositories   # fast test run
+Export-GHDocumentation -OutputPath ./docs/output -Organization my-org -SkipRepositories   # fast test run
 ```
 
 ### Tests
+
+The **Validate pull request** workflow validates the PowerShell module manifest and import, checks
+module syntax and error-level rules with PSScriptAnalyzer 1.25.0, and runs the offline validation
+suite and fake-API smoke test on every pull request. It uses no GitHub App credentials and does not
+change repository content.
 
 `tests/Invoke-SmokeTest.ps1` runs the whole chain (App JWT and tokens, getters, export, Pester compliance,
 report, SARIF, issue sync in dry run) against a fake GitHub API: no credentials or network needed.

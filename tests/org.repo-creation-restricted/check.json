@@ -1,0 +1,18 @@
+{
+  "id": "org.repo-creation-restricted",
+  "scope": "org",
+  "title": "Member repository creation is restricted",
+  "remediation": "In organization member privileges, restrict public and private repository creation to owners.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "settings"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.2.2"
+    ],
+    "coverage": "partial"
+  }
+}

@@ -43,21 +43,25 @@ function ConvertTo-GHComplianceSarif {
         $Findings = $collected.ToArray()
         # Where each check is visible in the generated docs: page (relative to the target's docs folder) + line regex.
         $CheckAnchors = @{
-            # Enterprise (docs/enterprise/enterprise/)
+            # Enterprise (docs/output/enterprise/)
             'enterprise.2fa-required' = @('README.md', '^\| 2FA required \|')
             'enterprise.users-without-2fa' = @('README.md', '^\| Affiliated users without 2FA \|')
             'enterprise.sso-configured' = @('README.md', '^## Authentication and access')
             'enterprise.default-permission-policy' = @('README.md', '^\| Base repository permission \|')
             'enterprise.repo-creation-policy' = @('README.md', '^\| Repository creation \|')
             'enterprise.repo-deletion-restricted' = @('README.md', '^\| Repo admins can delete/transfer repos \|')
+            'enterprise.issue-deletion-restricted' = @('README.md', '^\| Repo admins can delete issues \|')
             'enterprise.visibility-change-restricted' = @('README.md', '^\| Repo admins can change visibility \|')
             'enterprise.ip-allow-list' = @('README.md', '^\| IP allow list \|')
             'enterprise.max-owners' = @('README.md', '^## Enterprise owners')
             'enterprise.actions-restricted' = @('actions.md', '^\| Allowed actions \|')
-            # Organization (docs/enterprise/organizations/<org>/)
+            # Organization (docs/output/organizations/<org>/)
             'org.2fa-required' = @('README.md', '^\| 2FA required \|')
             'org.default-permission' = @('README.md', '^\| Default repository permission \|')
             'org.no-public-repo-creation' = @('README.md', '^\| Members can create public repos \|')
+            'org.repo-creation-restricted' = @('README.md', '^\| Members can create private repos \|')
+            'org.dependabot-alerts-new-repos' = @('README.md', '^\| Dependabot alerts for new repos \|')
+            'org.secret-scanning-new-repos' = @('README.md', '^\| Secret scanning for new repos \|')
             'org.push-protection-new-repos' = @('README.md', '^\| Push protection for new repos \|')
             'org.max-owners' = @('README.md', '^- Organization owners')
             'org.actions-restricted' = @('actions.md', '^\| Allowed actions \|')
@@ -79,6 +83,7 @@ function ConvertTo-GHComplianceSarif {
             'enterprise.default-permission-policy' = 'Unrestricted base permissions can give members broader repository access than intended.'
             'enterprise.repo-creation-policy' = 'Unrestricted repository creation can expose code or data in public repositories.'
             'enterprise.repo-deletion-restricted' = 'Repository deletion or transfer can cause data loss or move assets outside intended control.'
+            'enterprise.issue-deletion-restricted' = 'Unrestricted issue deletion can remove or conceal important project history.'
             'enterprise.visibility-change-restricted' = 'Unauthorized visibility changes can expose private code and data.'
             'enterprise.ip-allow-list' = 'Without network restrictions, access is not limited to approved IP ranges.'
             'enterprise.max-owners' = 'Excess enterprise owners increase the number of accounts with broad administrative privileges.'
@@ -86,6 +91,9 @@ function ConvertTo-GHComplianceSarif {
             'org.2fa-required' = 'Member accounts without a second factor are more vulnerable to credential theft.'
             'org.default-permission' = 'Broad base permissions can grant members unintended access to repositories.'
             'org.no-public-repo-creation' = 'Public repositories can expose code or data to anyone.'
+            'org.repo-creation-restricted' = 'Unrestricted repository creation can expose data and complicate inventory management.'
+            'org.dependabot-alerts-new-repos' = 'New repositories without dependency alerts may miss known vulnerable packages.'
+            'org.secret-scanning-new-repos' = 'New repositories without secret scanning may contain undetected exposed credentials.'
             'org.push-protection-new-repos' = 'New repositories without push protection may accept committed credentials.'
             'org.actions-restricted' = 'Unapproved actions may execute untrusted code in workflows with repository access.'
             'org.webhooks-tls' = 'Disabling TLS verification can expose webhook payloads to interception or tampering.'
@@ -96,8 +104,41 @@ function ConvertTo-GHComplianceSarif {
             'repo.push-protection' = 'Without push protection, supported secrets may be committed to the repository.'
             'repo.codeowners-present' = 'Without CODEOWNERS, designated owners cannot be automatically requested for review.'
             'repo.codeowners-valid' = 'Invalid CODEOWNERS entries may prevent intended owners from being requested for review.'
+            'repo.gitattributes-present' = 'Without repository attributes, line endings and file handling can differ between contributors and build environments.'
+            'repo.gitignore-present' = 'Without repository ignore rules, generated files and local configuration may be committed unintentionally.'
+            'repo.readme-present' = 'Without a root README.md, contributors may lack essential project purpose, setup and usage guidance.'
+            'repo.description-present' = 'Without a repository description, contributors may struggle to identify its purpose when browsing or searching.'
             'repo.stale' = 'Unmaintained repositories may retain outdated dependencies, access, or configuration.'
         }
+
+        $Impacts['repo.two-approvals'] = 'Insufficient branch controls can allow unreviewed or unsafe changes to reach important code.'
+        $Impacts['repo.dismiss-stale-reviews'] = 'Insufficient branch controls can allow unreviewed or unsafe changes to reach important code.'
+        $Impacts['repo.restrict-review-dismissal'] = 'Insufficient branch controls can allow unreviewed or unsafe changes to reach important code.'
+        $Impacts['repo.require-codeowner-review'] = 'Insufficient branch controls can allow unreviewed or unsafe changes to reach important code.'
+        $Impacts['repo.require-status-checks'] = 'Insufficient branch controls can allow unreviewed or unsafe changes to reach important code.'
+        $Impacts['repo.require-current-branch'] = 'Insufficient branch controls can allow unreviewed or unsafe changes to reach important code.'
+        $Impacts['repo.resolve-review-threads'] = 'Insufficient branch controls can allow unreviewed or unsafe changes to reach important code.'
+        $Impacts['repo.linear-history'] = 'Insufficient branch controls can allow unreviewed or unsafe changes to reach important code.'
+        $Impacts['repo.deny-force-push'] = 'Insufficient branch controls can allow unreviewed or unsafe changes to reach important code.'
+        $Impacts['repo.deny-branch-deletion'] = 'Insufficient branch controls can allow unreviewed or unsafe changes to reach important code.'
+        $Impacts['org.team-creation-restricted'] = 'Excessive privileges or broad access can expose organization resources and data.'
+        $Impacts['org.verified-domain'] = 'Excessive privileges or broad access can expose organization resources and data.'
+        $Impacts['org.repo-deletion-restricted'] = 'Excessive privileges or broad access can expose organization resources and data.'
+        $Impacts['org.issue-deletion-restricted'] = 'Excessive privileges or broad access can expose organization resources and data.'
+        $Impacts['org.private-forking-restricted'] = 'Excessive privileges or broad access can expose organization resources and data.'
+        $Impacts['org.apps-selected-repositories'] = 'Excessive privileges or broad access can expose organization resources and data.'
+        $Impacts['org.secrets-limited-repositories'] = 'Excessive privileges or broad access can expose organization resources and data.'
+        $Impacts['org.runner-groups-no-public'] = 'Excessive privileges or broad access can expose organization resources and data.'
+
+        $Impacts['org.actions-token-read-only'] = 'Broad workflow token permissions can allow compromised workflows to modify code or approve changes.'
+        $Impacts['org.actions-no-pr-approval'] = 'Broad workflow token permissions can allow compromised workflows to modify code or approve changes.'
+
+        $Impacts['repo.signed-commits'] = 'Unsigned commits can make change provenance harder to verify.'
+
+        $Impacts['org.no-internal-repo-creation'] = 'Unrestricted configuration can increase exposure to untrusted or unintended changes.'
+        $Impacts['org.actions-sha-pinning'] = 'Unrestricted configuration can increase exposure to untrusted or unintended changes.'
+
+        $Impacts['repo.restrict-branch-updates'] = 'Broad direct push access can bypass review and expose code to unauthorized changes.'
 
         if (-not $TargetServerUrl -and $EnterpriseApiUrl) {
             $apiUri = [uri]$EnterpriseApiUrl
@@ -148,7 +189,17 @@ function ConvertTo-GHComplianceSarif {
 
             if ($UsePolicyLocations) {
                 $path = 'compliance/policy.json'
-                return @{ path = $path; line = (Find-Line $path ('"' + [regex]::Escape($Check) + '"\s*:')) }
+                $pattern = '"' + [regex]::Escape($Check) + '"\s*:'
+                $policyFile = Join-Path $RepositoryRoot $path
+                if ($Check -match '^[a-z0-9]+(?:[.-][a-z0-9]+)*$' -and
+                    (Test-Path -LiteralPath $policyFile) -and
+                    -not (Select-String -LiteralPath $policyFile -Pattern $pattern -Quiet)) {
+                    $manifest = "tests/$Check/check.json"
+                    if (Test-Path -LiteralPath (Join-Path $RepositoryRoot $manifest) -PathType Leaf) {
+                        return @{ path = $manifest; line = (Find-Line $manifest '"id"\s*:') }
+                    }
+                }
+                return @{ path = $path; line = (Find-Line $path $pattern) }
             }
             $folder = Split-Path $Target.docs -Parent   # enterprise/ or organizations/<org>/
             if ($Target.type -ne 'repo') {
@@ -208,7 +259,7 @@ function ConvertTo-GHComplianceSarif {
                             'https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features'
                         }
                     }
-                    if ($f.check -in 'repo.secret-scanning', 'repo.push-protection', 'org.push-protection-new-repos') {
+                    if ($f.check -in 'repo.secret-scanning', 'repo.push-protection', 'org.push-protection-new-repos', 'org.secret-scanning-new-repos') {
                         $reference = 'https://docs.github.com/en/code-security/secret-scanning'
                     }
                     $impact = $Impacts[$f.check]

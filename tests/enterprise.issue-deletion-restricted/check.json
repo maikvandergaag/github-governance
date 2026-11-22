@@ -1,0 +1,18 @@
+{
+  "id": "enterprise.issue-deletion-restricted",
+  "scope": "enterprise",
+  "title": "Issue deletion is restricted at enterprise level",
+  "remediation": "In enterprise repository policies, disable issue deletion by repository administrators; review privileged access.",
+  "dataSource": {
+    "type": "enterprise-owner-info",
+    "fields": "membersCanDeleteIssuesSetting"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.2.4"
+    ],
+    "coverage": "partial"
+  }
+}

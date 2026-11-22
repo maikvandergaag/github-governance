@@ -6,6 +6,8 @@
 
 Excess organization owners increase the number of accounts with broad administrative privileges.
 
+**Benchmark:** CIS GitHub Benchmark v1.2.0, `1.3.3`. This check covers only part of the recommendation; complete the remaining review manually.
+
 ### Remediation
 
 - [ ] Reduce owners; use teams with appropriate organization roles instead.

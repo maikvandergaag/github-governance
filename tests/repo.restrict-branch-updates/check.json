@@ -1,0 +1,17 @@
+{
+  "id": "repo.restrict-branch-updates",
+  "scope": "repo",
+  "title": "Restrict default branch updates",
+  "remediation": "Restrict direct updates to approved users, teams or apps using branch protection or an update ruleset.",
+  "dataSource": {
+    "type": "repository-branch-rules"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.1.15"
+    ],
+    "coverage": "partial"
+  }
+}

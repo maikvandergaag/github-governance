@@ -1,0 +1,18 @@
+{
+  "id": "org.actions-no-pr-approval",
+  "scope": "org",
+  "title": "Disallow workflow pull request approvals",
+  "remediation": "Disable the option allowing workflows to create or approve pull requests.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "actionsWorkflowPermissions"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "2.1.7"
+    ],
+    "coverage": "partial"
+  }
+}

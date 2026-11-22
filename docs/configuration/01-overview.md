@@ -32,9 +32,9 @@ flowchart LR
 | `tests/<check-id>/policy.json` | Default enabled state, severity and parameters for one check |
 | `tests/<check-id>/<check-id>.Tests.ps1` | Policy evaluator and its Pester assertion |
 | `tests/<check-id>/issue.md` | Issue body template for a failed check |
-| `docs/enterprise/` | Generated documentation, compliance report and raw data snapshots |
+| `docs/output/` | Generated documentation, compliance report and raw data snapshots |
 
-Only the content under `docs/enterprise/` is generated. Edit the source configuration, module,
+Only the content under `docs/output/` is generated. Edit the source configuration, module,
 check folders or handbook—not the generated pages, which are replaced on the next run.
 
 ## Two evaluation modes

@@ -15,11 +15,11 @@ function Export-GHDocumentation {
 
     .EXAMPLE
         Connect-GHGovernance -Enterprise contoso
-        Export-GHDocumentation -OutputPath ./docs/enterprise
+        Export-GHDocumentation -OutputPath ./docs/output
     #>
     [CmdletBinding()]
     param(
-        [string] $OutputPath = './docs/enterprise',
+        [string] $OutputPath = './docs/output',
         # Limit the run to these organizations (useful for testing).
         [string[]] $Organization,
         [switch] $SkipRepositories,
@@ -78,6 +78,16 @@ function Export-GHDocumentation {
                     $detail = Invoke-GitHubRest "repos/$org/$($item.name)" -StrictErrors
                     if (-not $detail.Ok -or -not $detail.Data) {
                         throw "Cannot read repository $org/$($item.name) (HTTP $($detail.Status))."
+                    }
+                    if (-not (Get-Prop $detail.Data 'archived')) {
+                        $evidence = Get-GHBranchEvidence -Organization ([uri]::EscapeDataString($org)) `
+                            -Repository ([uri]::EscapeDataString($item.name)) -DefaultBranch (Get-Prop $detail.Data 'default_branch')
+                        $detail.Data | Add-Member -NotePropertyName complianceBranchEvidence -NotePropertyValue $evidence -Force
+                        $rootFiles = Get-GHRootFileEvidence -Organization ([uri]::EscapeDataString($org)) `
+                            -Repository ([uri]::EscapeDataString($item.name)) -DefaultBranch (Get-Prop $detail.Data 'default_branch')
+                        $detail.Data | Add-Member -NotePropertyName complianceGitAttributes -NotePropertyValue (Get-Prop $rootFiles 'gitAttributes') -Force
+                        $detail.Data | Add-Member -NotePropertyName complianceGitIgnore -NotePropertyValue (Get-Prop $rootFiles 'gitIgnore') -Force
+                        $detail.Data | Add-Member -NotePropertyName complianceReadme -NotePropertyValue (Get-Prop $rootFiles 'readme') -Force
                     }
                     $detail.Data
                 })

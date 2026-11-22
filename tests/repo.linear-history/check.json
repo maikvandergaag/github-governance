@@ -1,0 +1,17 @@
+{
+  "id": "repo.linear-history",
+  "scope": "repo",
+  "title": "Require linear history",
+  "remediation": "Enable linear history on the default branch.",
+  "dataSource": {
+    "type": "repository-branch-rules"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.1.13"
+    ],
+    "coverage": "partial"
+  }
+}

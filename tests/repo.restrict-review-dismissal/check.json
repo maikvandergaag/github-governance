@@ -1,0 +1,17 @@
+{
+  "id": "repo.restrict-review-dismissal",
+  "scope": "repo",
+  "title": "Restrict review dismissal",
+  "remediation": "Restrict who may dismiss pull request reviews.",
+  "dataSource": {
+    "type": "repository-branch-rules"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.1.5"
+    ],
+    "coverage": "partial"
+  }
+}

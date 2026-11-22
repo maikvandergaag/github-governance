@@ -1,0 +1,17 @@
+{
+  "id": "repo.deny-force-push",
+  "scope": "repo",
+  "title": "Deny force pushes",
+  "remediation": "Prevent force pushes to the default branch.",
+  "dataSource": {
+    "type": "repository-branch-rules"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.1.16"
+    ],
+    "coverage": "partial"
+  }
+}

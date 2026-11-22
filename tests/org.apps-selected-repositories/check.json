@@ -1,0 +1,18 @@
+{
+  "id": "org.apps-selected-repositories",
+  "scope": "org",
+  "title": "Limit installed apps to selected repositories",
+  "remediation": "Restrict each GitHub App installation to the repositories it needs.",
+  "dataSource": {
+    "type": "organization-section",
+    "section": "installations"
+  },
+  "cis": {
+    "benchmark": "CIS GitHub Benchmark",
+    "version": "1.2.0",
+    "recommendations": [
+      "1.4.3"
+    ],
+    "coverage": "partial"
+  }
+}

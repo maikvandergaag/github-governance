@@ -1,0 +1,9 @@
+{
+  "id": "repo.description-present",
+  "scope": "repo",
+  "title": "Repository description is present",
+  "remediation": "Add a concise description explaining the repository's purpose in the repository About settings.",
+  "dataSource": {
+    "type": "repository"
+  }
+}
