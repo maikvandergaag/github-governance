@@ -167,7 +167,7 @@ jobs:
       - name: Prepare documentation patch
         shell: bash
         run: |
-          git add -A "$OUTPUT_PATH"
+          git add -f -A "$OUTPUT_PATH"
           git diff --cached --binary -- "$OUTPUT_PATH" > generated-docs.patch
 
       - name: Upload documentation patch
@@ -238,7 +238,7 @@ jobs:
         run: |
           test -f compliance-findings.json
           # A patch preserves added, changed and deleted generated files across jobs.
-          git add -A "$OUTPUT_PATH"
+          git add -f -A "$OUTPUT_PATH"
           git diff --cached --binary -- "$OUTPUT_PATH" > enterprise-docs.patch
 
       - name: Upload findings and documentation

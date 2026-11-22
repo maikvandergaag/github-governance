@@ -186,7 +186,7 @@ Describe 'Compliance workflow stages' {
         $inventory | Should -Match '(?m)^\s+name: documentation-patch\r?$'
         $pester | Should -Match '(?m)^\s+name: documentation-patch\r?$'
         $pester | Should -Match 'git apply --index --whitespace=nowarn generated-docs\.patch'
-        $pester | Should -Match 'git add -A "\$OUTPUT_PATH"'
+        $pester | Should -Match 'git add -f -A "\$OUTPUT_PATH"'
         $pester | Should -Match 'git diff --cached --binary -- "\$OUTPUT_PATH" > enterprise-docs\.patch'
         $pester | Should -Match '(?m)^\s+name: compliance-findings\r?$'
         $pester | Should -Match '(?m)^\s+compliance-findings\.json\r?$'
@@ -207,7 +207,9 @@ Describe 'Compliance workflow stages' {
         Set-Content "$source/docs/output/removed.md" 'old'
         New-Item -ItemType Directory -Path "$source/docs/output/compliance" | Out-Null
         Set-Content "$source/docs/output/compliance/README.md" 'old report'
+        Copy-Item "$PSScriptRoot/../../.gitignore" "$source/.gitignore"
         & git -C $source add .
+        & git -C $source add -f docs/output
         & git -C $source -c user.name=Fixture -c user.email=fixture@example.invalid commit -qm fixture
         if ($LASTEXITCODE -ne 0) {
             throw 'Could not create the workflow test fixture.'
@@ -230,6 +232,7 @@ Describe 'Compliance workflow stages' {
             Get-Content "$evaluation/docs/output/added.md" | Should -Be 'added'
             Test-Path "$evaluation/docs/output/removed.md" | Should -BeFalse
             Set-Content "$evaluation/docs/output/compliance/README.md" 'new report'
+            Set-Content "$evaluation/docs/output/compliance/new.md" 'new finding'
             Set-Content "$evaluation/compliance-findings.json" '[]'
             Invoke-BashStep $evaluation (Get-BashStepScript $pester 'Prepare generated documentation')
         } finally {
@@ -241,6 +244,7 @@ Describe 'Compliance workflow stages' {
         Get-Content "$destination/docs/output/added.md" | Should -Be 'added'
         Test-Path "$destination/docs/output/removed.md" | Should -BeFalse
         Get-Content "$destination/docs/output/compliance/README.md" | Should -Be 'new report'
+        Get-Content "$destination/docs/output/compliance/new.md" | Should -Be 'new finding'
     }
 
     It 'accepts an empty documentation patch' {
