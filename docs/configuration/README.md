@@ -1,10 +1,10 @@
 # Configuration handbook
 
-[Repository guide](../repo/README.md) · [Generated documentation](../enterprise/README.md) · [Home](../../README.md)
+[Repository guide](../repo/README.md) · [Example](../example.md) · [Home](../../README.md)
 
-This handbook explains how to configure, operate and extend the GitHub Enterprise documentation
-and compliance workflow. It is organized as a book: read the chapters in order for a first setup,
-or jump to a topic from the contents below.
+This handbook explains how to configure, operate and extend GitHub Governance for an enterprise,
+standalone organization, or personal account. Read the chapters in order for a first setup, or
+jump to a topic from the contents below.
 
 ## Contents
 
@@ -18,6 +18,7 @@ or jump to a topic from the contents below.
 
 ## Reference
 
+- [Governance check catalog](../checks.md)
 - [Policy file reference](reference/policy-schema.md)
 - [Check manifest reference](reference/check-manifest.md)
 - [GitHub App permissions](reference/permissions.md)
@@ -29,4 +30,6 @@ or jump to a topic from the contents below.
 - **Adding a check:** read [Adding a compliance check](06-adding-checks.md) and its references.
 
 The [repository guide](../repo/README.md) describes the generated documentation and compliance
-outputs. The [setup guide](../repo/SETUP.md) remains a short entry point to this handbook.
+outputs. The [setup guide](../repo/SETUP.md) is a short entry point to this handbook. Generated
+documentation is proposed or committed under `docs/enterprise/` when documentation is selected and
+a run succeeds; it is not present in a fresh clone.

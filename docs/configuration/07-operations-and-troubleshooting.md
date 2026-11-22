@@ -10,12 +10,17 @@ The `Check - GitHub Enterprise` workflow runs weekly and supports manual dispatc
 2. `inventory` collects snapshots and generates documentation.
 3. `pester` evaluates compliance when selected; `sync-issues` synchronizes findings and `summarize`
    reports them when SARIF is disabled.
-4. `commit_docs` commits documentation when selected; `publish_sarif` uploads SARIF when selected.
+4. `commit_docs` proposes documentation in a PR by default, or pushes directly when configured;
+   `publish_sarif` uploads SARIF when selected.
 
 Manual runs can select documentation, compliance tests and SARIF independently, except that SARIF
 requires tests. Scheduled runs enable all three. With documentation disabled, compliance collects a
 temporary inventory and issue links may point to older or absent pages; SARIF points to the committed
-policy instead. With neither documentation nor tests selected, no collection runs. The
+policy instead. With PR publishing, documentation remains unmerged until the PR is approved and
+merged: issues can likewise link to older or absent pages, and SARIF points to the policy in the
+triggering commit rather than to unmerged documentation. After a later run, SARIF is refreshed; PR
+merging alone does not trigger a new inventory or SARIF upload. With neither documentation nor tests
+selected, no collection runs. The
 `documentation-patch` artifact transfers inventory to Pester, and `compliance-findings` contains
 findings and the documentation patch when compliance runs.
 
@@ -75,7 +80,10 @@ dry run of issue synchronization is documented in the [repository guide](../repo
 | Section is *Not available* (HTTP 404) | The feature may be unavailable for the plan or token type. |
 | Check is not evaluated | Required data is incomplete or inaccessible; inspect App permissions and installation. |
 | Manifest discovery fails | Check the JSON, scope prefix, matching folder/test ID, local `policy.json` and `issue.md`. |
-| Protected-branch push fails | Allow the GitHub Actions bot to bypass the rule or adjust the publishing approach. |
+| Documentation PR cannot be created | Allow Actions to create PRs, or configure a suitably scoped `DOCS_PUBLISH_TOKEN`; see [setup](03-setup.md#repository-settings). |
+| Documentation PR has no required checks | `GITHUB_TOKEN` does not trigger ordinary PR workflows; use a suitable publishing credential or another trusted check mechanism, as described in [setup](03-setup.md#actions-variables-and-secrets). |
+| Publishing branch is unmanaged or modified | Review the branch and its PR manually; the workflow refuses to overwrite it. |
+| Protected-branch push fails in direct mode | Use the default PR mode, or allow the publishing credential to push under the branch rules. |
 | SARIF upload fails | Confirm workflow token permissions and that Code Security is enabled for a private/internal repository. |
 | Issue sync is rate-limited | Wait for the rate limit to reset, then rerun the workflow. |
 

@@ -6,6 +6,18 @@ Checks are discovered at runtime from `tests/<check-id>/check.json`. There is no
 registry to update. The check manifest supplies its scope, title, remediation and live data source;
 the matching test file supplies the policy logic.
 
+## CIS benchmark reference
+
+The Center for Internet Security's
+[CIS GitHub Benchmark](https://www.cisecurity.org/benchmark/software-supply-chain-security) is a
+reference when reviewing GitHub security settings and designing policies. Compare the benchmark
+version and recommendations applicable to your environment with the
+[built-in check catalog](../checks.md) and your configured policy.
+
+The project does not currently provide a version-specific mapping between its checks and CIS
+recommendations. A passing result does not establish CIS benchmark conformance or certification;
+some recommendations may require additional checks or manual review.
+
 ## Defaults and overrides
 
 Each check's `policy.json` is its default configuration:

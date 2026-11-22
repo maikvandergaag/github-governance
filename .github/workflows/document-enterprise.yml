@@ -15,7 +15,7 @@ on:
           - organization
           - user
       documentation:
-        description: Generate and commit documentation
+        description: Generate and publish documentation
         type: boolean
         default: true
       compliance:
@@ -40,6 +40,7 @@ env:
   RUN_DOCUMENTATION: ${{ github.event_name == 'schedule' || inputs.documentation }}
   RUN_COMPLIANCE: ${{ github.event_name == 'schedule' || inputs.compliance }}
   RUN_SARIF: ${{ github.event_name == 'schedule' || inputs.publish_sarif }}
+  DOCS_PUBLISH_MODE: ${{ vars.DOCS_PUBLISH_MODE || 'pull_request' }}
   ENTERPRISE_API_URL: ${{ vars.ENTERPRISE_API_URL || 'https://api.github.com' }}
   OUTPUT_PATH: docs/enterprise
   MODULE_PATH: ./src/GitHubGovernance/GitHubGovernance.psd1
@@ -71,6 +72,9 @@ jobs:
           $ErrorActionPreference = 'Stop'
           if ($env:RUN_SARIF -eq 'true' -and $env:RUN_COMPLIANCE -ne 'true') {
             throw 'SARIF publishing requires compliance tests to be selected.'
+          }
+          if ($env:DOCS_PUBLISH_MODE -notin 'pull_request', 'direct') {
+            throw 'DOCS_PUBLISH_MODE must be pull_request or direct.'
           }
           if ($env:RUN_DOCUMENTATION -ne 'true' -and $env:RUN_COMPLIANCE -ne 'true') {
             Write-Host 'No documentation or compliance actions selected.'
@@ -257,11 +261,17 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: write
+      pull-requests: write
+    environment: enterprise-compliance
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
+      docs_committed: ${{ steps.commit.outputs.docs_committed }}
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.DOCS_PUBLISH_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Download findings and documentation
         if: ${{ needs.validate.outputs.compliance == 'true' }}
@@ -280,9 +290,12 @@ jobs:
         shell: bash
         env:
           RUN_COMPLIANCE: ${{ needs.validate.outputs.compliance }}
+          GH_TOKEN: ${{ secrets.DOCS_PUBLISH_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_ENTERPRISE_TOKEN: ${{ secrets.DOCS_PUBLISH_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          # Alerts must point at the commit that contains the docs; default to the current commit.
+          set -euo pipefail
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "docs_committed=false" >> "$GITHUB_OUTPUT"
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           patch=generated-docs.patch
@@ -293,10 +306,41 @@ jobs:
             git apply --index --whitespace=nowarn "$patch"
           fi
 
-          # README.md always changes (timestamp); only commit when something else changed.
+          branch=""
+          old_sha=""
+          pr_number=""
+          if [ "$DOCS_PUBLISH_MODE" = "pull_request" ]; then
+            branch="github-governance/docs-$(printf '%s' "$GITHUB_REF_NAME" | git hash-object --stdin)"
+            remote_ref="refs/heads/$branch"
+            old_sha=$(git ls-remote --heads origin "$remote_ref" | cut -f1)
+            if [ -n "$old_sha" ]; then
+              git fetch --no-tags origin "$remote_ref"
+              old_sha=$(git rev-parse FETCH_HEAD)
+              parent=$(git rev-parse "$old_sha^")
+              [ "$(git rev-list --parents -n 1 "$old_sha" | wc -w | tr -d ' ')" = "2" ] || { echo "Refusing to overwrite a merged publishing branch." >&2; exit 1; }
+              [ "$(git log -1 --format=%s "$old_sha")" = "docs: update GitHub Governance inventory" ] || { echo "Refusing to overwrite an unmanaged publishing branch." >&2; exit 1; }
+              [ "$(git log -1 --format=%ae "$old_sha")" = "41898282+github-actions[bot]@users.noreply.github.com" ] || { echo "Refusing to overwrite a modified publishing branch." >&2; exit 1; }
+              [ "$(git log -1 --format=%ce "$old_sha")" = "41898282+github-actions[bot]@users.noreply.github.com" ] || { echo "Refusing to overwrite a modified publishing branch." >&2; exit 1; }
+              git merge-base --is-ancestor "$parent" HEAD || { echo "Publishing branch is not based on this target branch." >&2; exit 1; }
+              if ! git diff --quiet "$parent" "$old_sha" -- . ":(exclude)$OUTPUT_PATH"; then
+                echo "Publishing branch contains changes outside $OUTPUT_PATH." >&2
+                exit 1
+              fi
+            fi
+            pr_number=$(gh pr list --head "$branch" --base "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+            if [ -n "$pr_number" ] && ! gh pr view "$pr_number" --json body --jq .body | grep -Fxq '<!-- github-governance:managed-docs -->'; then
+              echo "Refusing to modify an unmanaged pull request." >&2
+              exit 1
+            fi
+          fi
+
+          # README.md always changes (timestamp); only publish when something else changed.
           if git diff --cached --quiet -- "$OUTPUT_PATH" ":(exclude)$OUTPUT_PATH/README.md"; then
             echo "No configuration changes detected."
             git reset --quiet
+            if [ -n "$pr_number" ] && [ -n "$old_sha" ]; then
+              gh pr close "$pr_number" --comment "The latest inventory matches the target branch; closing this outdated proposal."
+            fi
             exit 0
           fi
 
@@ -307,9 +351,20 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-          git commit -m "docs: update GitHub Enterprise documentation ($(date -u +%Y-%m-%d))"
-          git push
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          if [ "$DOCS_PUBLISH_MODE" = "direct" ]; then
+            git commit -m "docs: update GitHub Enterprise documentation ($(date -u +%Y-%m-%d))"
+            git push
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            echo "docs_committed=true" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "docs: update GitHub Governance inventory"
+            git push --force-with-lease="$remote_ref:$old_sha" origin "HEAD:$remote_ref"
+            if [ -z "$pr_number" ]; then
+              gh pr create --base "$GITHUB_REF_NAME" --head "$branch" \
+                --title "docs: update GitHub Governance inventory" \
+                --body $'<!-- github-governance:managed-docs -->\n## Summary\n\n<!-- What changed and why? -->\nUpdate generated GitHub Governance documentation.\n\n## Validation\n\nGenerated by the documentation workflow; review the workflow run for results.\n\n- [ ] `Invoke-Pester -Path ./tests/validation`\n- [ ] `pwsh ./tests/Invoke-SmokeTest.ps1`\n- [ ] Documentation updated, if needed\n\n## Risk and compatibility\n\n<!-- Note changes to permissions, collected data, or compatibility. Write "None" if not applicable. -->\nGenerated documentation may include sensitive account metadata.'
+            fi
+          fi
 
   publish_sarif:
     needs: [validate, pester, commit_docs]
@@ -335,7 +390,7 @@ jobs:
         shell: pwsh
         env:
           RESULT_COMMIT: ${{ needs.commit_docs.outputs.sha || github.sha }}
-          DOCS_COMMITTED: ${{ needs.validate.outputs.documentation }}
+          DOCS_COMMITTED: ${{ needs.commit_docs.outputs.docs_committed }}
         run: |
           Import-Module $env:MODULE_PATH -Force
           ConvertTo-GHComplianceSarif -FindingsFile ./compliance-findings.json -OutputFile ./compliance.sarif -Commit $env:RESULT_COMMIT -UsePolicyLocations:($env:DOCS_COMMITTED -ne 'true')
@@ -345,7 +400,7 @@ jobs:
         with:
           sarif_file: compliance.sarif
           category: github-enterprise-compliance
-          # Point alerts at the docs commit created above, not the commit that triggered the run.
+          # PR publishing uses the original commit; direct publishing uses the new docs commit.
           sha: ${{ needs.commit_docs.outputs.sha || github.sha }}
           ref: ${{ github.ref }}
 

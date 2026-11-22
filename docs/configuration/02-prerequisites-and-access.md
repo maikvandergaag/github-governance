@@ -32,9 +32,10 @@ endpoint.
 
 ## Write permissions
 
-The reader App does not need write access. The workflow's `GITHUB_TOKEN` separately writes generated
-documentation, compliance issues and SARIF results. Repository and organization policy must allow
-those workflow-token permissions; see [Setup](03-setup.md#repository-settings).
+The reader App does not need write access. The workflow's `GITHUB_TOKEN` separately publishes
+documentation, compliance issues and SARIF results. Documentation publishing can optionally use a
+separate credential instead. Repository and organization policy must allow the required permissions;
+see [Setup](03-setup.md#repository-settings).
 
 ## Data residency
 
