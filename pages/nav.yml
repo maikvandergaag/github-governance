@@ -1,0 +1,31 @@
+nav:
+  - Home: README.md
+  - Get started:
+      - How it works: docs/configuration/01-overview.md
+      - Choose your scope: docs/repo/SETUP.md
+      - Prerequisites and access: docs/configuration/02-prerequisites-and-access.md
+      - Set up and run: docs/configuration/03-setup.md
+      - Example: docs/example.md
+  - Configure:
+      - Policy and outcomes: docs/configuration/04-policy.md
+      - Exemptions: docs/configuration/05-exemptions.md
+      - Operations and troubleshooting: docs/configuration/07-operations-and-troubleshooting.md
+  - Check catalog: docs/checks.md
+  - Concepts:
+      - Reports, issues and SARIF: docs/repo/README.md
+  - Reference:
+      - Permissions: docs/configuration/reference/permissions.md
+      - Policy schema: docs/configuration/reference/policy-schema.md
+      - Check manifest: docs/configuration/reference/check-manifest.md
+      - PowerShell module: docs/repo/README.md
+  - Contribute:
+      - Adding checks: docs/configuration/06-adding-checks.md
+      - Contributing: CONTRIBUTING.md
+      - Code of conduct: CODE_OF_CONDUCT.md
+      - Security: SECURITY.md
+      - Upstream synchronization: docs/repo/UPSTREAM_SYNC.md
+  - More documentation:
+      - glob: "docs/**/*.md"
+        ignore_no_matches: true
+      - glob: "*.md"
+        ignore_no_matches: true

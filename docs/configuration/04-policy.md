@@ -42,6 +42,8 @@ and examples.
 
 ## Evaluation results
 
+![Pass means the requirement is satisfied; fail may create an issue; missing data is not evaluated and does not create or close an issue.](../assets/outcomes.svg)
+
 Each check returns one of these outcomes:
 
 | Result | Meaning | Compliance issue |

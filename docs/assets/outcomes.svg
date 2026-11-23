@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 240" role="img" aria-labelledby="title desc">
+  <title id="title">Understand assessment outcomes</title>
+  <desc id="desc">A passing check meets the requirement; a failing check may create an issue; a check with missing data is not evaluated and does not create or close an issue.</desc>
+  <rect width="1120" height="240" rx="24" fill="#10233a"/>
+  <g font-family="system-ui, sans-serif">
+    <text x="42" y="45" font-size="16" font-weight="700" fill="#79d6d3" letter-spacing="2">EVERY OUTCOME TELLS A DIFFERENT STORY</text>
+    <g fill="#1c3551" stroke="#3b5870" stroke-width="2">
+      <rect x="40" y="72" width="330" height="120" rx="14"/><rect x="395" y="72" width="330" height="120" rx="14"/><rect x="750" y="72" width="330" height="120" rx="14"/>
+    </g>
+    <g font-size="21" font-weight="700"><text x="60" y="110" fill="#85dfb9">PASS</text><text x="415" y="110" fill="#ffb5a8">FAIL</text><text x="770" y="110" fill="#f3d486">NOT EVALUATED</text></g>
+    <g fill="#fff" font-size="15">
+      <text x="60" y="145">Requirement is satisfied.</text><text x="60" y="170">A prior issue may be closed.</text>
+      <text x="415" y="145">Requirement is not satisfied.</text><text x="415" y="170">An issue may be created.</text>
+      <text x="770" y="145">Data or access is incomplete.</text><text x="770" y="170">No issue is created or closed.</text>
+    </g>
+  </g>
+</svg>

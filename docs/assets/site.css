@@ -1,0 +1,101 @@
+:root {
+  --md-primary-fg-color: #13263c;
+  --md-accent-fg-color: #147d92;
+  --md-typeset-a-color: #096b80;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-typeset-a-color: #79d6d3;
+  --md-accent-fg-color: #79d6d3;
+}
+
+[data-md-color-scheme="default"] {
+  --md-typeset-a-color: #096b80;
+}
+
+.md-typeset h1 {
+  color: var(--md-default-fg-color);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+}
+
+.md-typeset h2 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.md-typeset a {
+  text-underline-offset: 0.18em;
+}
+
+.md-typeset .hero {
+  padding: 1.8rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, rgba(20, 125, 146, 0.11), transparent 70%);
+}
+
+.md-typeset .hero h1 {
+  margin: 0 0 0.55rem;
+}
+
+.md-typeset .hero p {
+  max-width: 46rem;
+  font-size: 1.05rem;
+}
+
+.md-typeset .hero .md-button {
+  margin: 0.3rem 0.35rem 0.2rem 0;
+}
+
+.md-typeset .hero .md-button:not(.md-button--primary) {
+  color: var(--md-default-fg-color);
+  border-color: var(--md-default-fg-color--light);
+}
+
+.md-typeset .path-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 0.8rem;
+  margin: 1.2rem 0 2rem;
+}
+
+.md-typeset .path-grid > div {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.7rem;
+}
+
+.md-typeset .path-grid h3 {
+  margin: 0 0 0.3rem;
+}
+
+.md-typeset .path-grid p {
+  margin: 0;
+}
+
+.md-typeset img.diagram {
+  display: block;
+  width: 100%;
+  margin: 1.2rem auto;
+  border-radius: 0.7rem;
+}
+
+@media (max-width: 48em) {
+  .md-typeset p:has(> img[src*="/assets/"]) {
+    overflow-x: auto;
+  }
+
+  .md-typeset p > img[src*="/assets/"] {
+    width: 42rem;
+    max-width: none;
+  }
+
+  .md-typeset p:has(> img[src*="/assets/"])::after {
+    display: block;
+    color: var(--md-default-fg-color--light);
+    content: "Scroll diagram horizontally →";
+    font-size: 0.7rem;
+  }
+}

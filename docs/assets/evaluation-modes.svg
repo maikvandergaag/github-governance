@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 300" role="img" aria-labelledby="title desc">
+  <title id="title">Two evaluation modes</title>
+  <desc id="desc">The read-only GitHub App supplies collected snapshots for snapshot evaluation and live data for Pester evaluation. Both produce outcomes that can be reported.</desc>
+  <rect width="1120" height="300" rx="24" fill="#10233a"/>
+  <g font-family="system-ui, sans-serif">
+    <text x="42" y="46" font-size="16" font-weight="700" fill="#79d6d3" letter-spacing="2">TWO WAYS TO EVALUATE</text>
+    <g fill="#1c3551" stroke="#3b5870" stroke-width="2">
+      <rect x="38" y="108" width="210" height="90" rx="14"/>
+      <rect x="304" y="73" width="220" height="72" rx="14"/>
+      <rect x="304" y="171" width="220" height="72" rx="14"/>
+      <rect x="580" y="73" width="220" height="72" rx="14"/>
+      <rect x="580" y="171" width="220" height="72" rx="14"/>
+      <rect x="858" y="108" width="220" height="90" rx="14"/>
+    </g>
+    <g fill="#fff" font-size="18" font-weight="700" text-anchor="middle">
+      <text x="143" y="160">GitHub App</text>
+      <text x="414" y="115">Collect snapshots</text>
+      <text x="414" y="213">Read live data</text>
+      <text x="690" y="115">Snapshot checks</text>
+      <text x="690" y="213">Pester checks</text>
+      <text x="968" y="150">Check outcomes</text>
+    </g>
+    <text x="968" y="174" text-anchor="middle" fill="#c6d6e5" font-size="14">Report · Issues · SARIF</text>
+    <g stroke="#79d6d3" stroke-width="3" fill="none">
+      <path d="M248 140h28v-31h22m-7-7 7 7-7 7"/>
+      <path d="M248 166h28v41h22m-7-7 7 7-7 7"/>
+      <path d="M524 109h49m-7-7 7 7-7 7"/><path d="M524 207h49m-7-7 7 7-7 7"/>
+      <path d="M800 109h27v31h24m-7-7 7 7-7 7"/><path d="M800 207h27v-41h24m-7-7 7 7-7 7"/>
+    </g>
+    <text x="42" y="273" fill="#c6d6e5" font-size="14">Issues and SARIF are optional; missing data is not evaluated.</text>
+  </g>
+</svg>

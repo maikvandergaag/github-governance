@@ -6,6 +6,8 @@ This guide helps you create your own copy and configure it for an enterprise, st
 organization, or personal account. The [configuration handbook](../configuration/README.md)
 provides detailed instructions.
 
+![Five steps: choose a scope, configure the GitHub App, review policy, run the workflow, and review results.](../assets/setup-journey.svg)
+
 ## Create your repository
 
 Generated inventories can contain sensitive organization and repository metadata. For real
