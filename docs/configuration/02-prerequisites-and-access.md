@@ -32,10 +32,14 @@ endpoint.
 
 ## Write permissions
 
-The workflow's `GITHUB_TOKEN` writes generated documentation, centralized compliance issues and
-SARIF results. If repository issues are routed to their target repositories, the App also needs
-repository **Issues: read and write** permission and access to those repositories. Repository and
-organization policy must allow the workflow-token permissions; see [Setup](03-setup.md#repository-settings).
+For documentation pull requests, install the App on the documentation repository and grant it
+repository **Contents: read and write** and **Pull requests: read and write** permissions. The App
+token is restricted to that repository. These permissions apply to its installations, so review their
+repository access. In direct mode the workflow uses `GITHUB_TOKEN` or `DOCS_PUBLISH_TOKEN` instead.
+The workflow's `GITHUB_TOKEN` writes centralized compliance issues and SARIF results. If repository
+issues are routed to their target repositories, the App also needs repository **Issues: read and
+write** permission and access to those repositories. Repository and organization policy must allow
+the workflow-token permissions; see [Setup](03-setup.md#repository-settings).
 
 ## Data residency
 

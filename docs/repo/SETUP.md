@@ -88,17 +88,17 @@ stage local generated output, review it and use `git add -f` only in your restri
 | Personal account | Repository checks for repositories owned by the account | Follow [personal account setup](../configuration/03-setup.md#standalone-organizations-and-personal-accounts) and choose `user`. |
 
 All paths need PowerShell 7.2+ for local use and a GitHub App with read permissions
-appropriate to the scope. Target-repository issue routing also requires Issues write access.
-The workflow uses a separate token for other publishing; generated
-documentation should be stored in a private or internal repository. See
+appropriate to the scope. Documentation PR publishing also requires Contents and Pull requests
+write access on the documentation repository; target-repository issue routing requires Issues write
+access. Generated documentation should be stored in a private or internal repository. See
 [prerequisites and access](../configuration/02-prerequisites-and-access.md) before configuring
 credentials. For an introduction without credentials, see the [illustrative example](../example.md).
 
 ## Recommended reading
 
 1. [Prerequisites and access](../configuration/02-prerequisites-and-access.md): create and install the
-   GitHub App and grant its permissions. Target-repository issue routing additionally requires
-   repository Issues read and write permission.
+   GitHub App and grant its permissions, including write permissions for documentation PRs or
+   target-repository issue routing when enabled.
 2. [Setup](../configuration/03-setup.md): configure Actions variables, the private-key secret,
    repository settings and run the workflow.
 3. [Compliance policy](../configuration/04-policy.md): understand default check policies and

@@ -15,18 +15,22 @@ for your repository's host.
 When target-repository issue routing is enabled, grant the App repository **Issues: read and write**
 on each target repository. Repository issues must also be enabled.
 
-The workflow uses its built-in `GITHUB_TOKEN` for writes unless an optional
-`DOCS_PUBLISH_TOKEN` is configured for documentation publishing:
+For documentation pull requests, grant the App repository **Contents: read and write** and
+**Pull requests: read and write**, and install it on the documentation repository. These App
+permissions apply to its installations; review their repository access. The workflow restricts
+the publishing token to the documentation repository and those two permissions.
+
+The workflow uses its built-in `GITHUB_TOKEN` for other writes. Direct documentation publishing
+can instead use an optional `DOCS_PUBLISH_TOKEN`:
 
 | Permission | Job | Purpose |
 | --- | --- | --- |
-| `contents: write` | `commit_docs` | Commit generated documentation |
-| `pull-requests: write` | `commit_docs` | Open and close managed documentation pull requests |
+| `contents: write` | `commit_docs` | Commit generated documentation in direct mode |
+| `pull-requests: write` | `commit_docs` | Available to the publishing job's workflow token |
 | `security-events: write` | `publish_sarif` | Upload SARIF |
 | `issues: write` | `sync-issues` | Create, update and close issues in the documentation repository |
 | `actions: read` | `publish_sarif` | Read workflow-run metadata for SARIF |
 
-The App does not need write permissions when all issues stay in the documentation repository.
 Keep the private key in the protected `enterprise-compliance` environment.
 GitHub may require an organization owner or security manager to read default code security
 configurations. If a setting or endpoint is inaccessible, the affected check is not evaluated.

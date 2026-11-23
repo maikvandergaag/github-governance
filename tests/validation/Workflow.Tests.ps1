@@ -55,6 +55,23 @@ BeforeAll {
 }
 
 Describe 'Compliance workflow stages' {
+    It 'uses a repository-scoped App token for documentation PRs in both workflow copies' {
+        foreach ($content in $workflow, (Get-Content "$PSScriptRoot/../../templates/governance-assessment.yml" -Raw)) {
+            $job = [regex]::Match($content, '(?ms)^  commit_docs:\r?\n.*?(?=^  publish_sarif:)').Value
+            $token = [regex]::Match($job, '(?ms)^      - name: Create documentation publishing App token\r?\n.*?(?=^      - name:)').Value
+            $token | Should -Match 'if: \$\{\{ env\.DOCS_PUBLISH_MODE == ''pull_request'' \}\}'
+            $token | Should -Match 'actions/create-github-app-token@'
+            $token | Should -Match 'client-id: \$\{\{ vars\.GH_APP_CLIENT_ID \}\}'
+            $token | Should -Match 'private-key: \$\{\{ secrets\.GH_APP_PRIVATE_KEY \}\}'
+            $token | Should -Match 'permission-contents: write'
+            $token | Should -Match 'permission-pull-requests: write'
+            $credential = '\$\{\{ steps\.docs-app-token\.outputs\.token \|\| secrets\.DOCS_PUBLISH_TOKEN \|\| secrets\.GITHUB_TOKEN \}\}'
+            $job | Should -Match "token: $credential"
+            $job | Should -Match "GH_TOKEN: $credential"
+            $job | Should -Match "GH_ENTERPRISE_TOKEN: $credential"
+        }
+    }
+
     It 'defaults all three manual and scheduled actions to enabled' {
         foreach ($name in 'documentation', 'compliance', 'publish_sarif') {
             $workflow | Should -Match ("(?ms)^      ${name}:\r?\n.*?        type: boolean\r?\n        default: true")

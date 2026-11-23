@@ -34,24 +34,22 @@ the private key. Add environment reviewers only if approval for every scheduled 
 validation, inventory, Pester and issue-sync jobs use this environment and may each require approval.
 
 `GITHUB_TOKEN` is provided by GitHub Actions; do not create it manually.
-Optionally add `DOCS_PUBLISH_TOKEN` as an environment secret in `enterprise-compliance` for
-documentation publishing. The publishing job uses it instead of `GITHUB_TOKEN` for checkout,
-push and PR operations. Use a dedicated, appropriately scoped credential with repository contents
-and pull requests write access, restrict access to the environment, and rotate it as needed.
-It is separate from the collector App, which needs Issues write access only when routing
-repository issues to their target repositories.
+In default pull-request mode, the workflow uses the collector App to push the documentation branch
+and manage its PR. Install the App on the documentation repository with Contents and Pull requests
+read and write permissions; the publishing token is restricted to that repository. Approve updated
+App permissions on existing installations. App-generated events can trigger normal checks, subject
+to repository and organization policy.
 
-PRs created or updated with `GITHUB_TOKEN` do not trigger ordinary `push` or `pull_request`
-workflows. If branch rules require those checks, configure `DOCS_PUBLISH_TOKEN` with a credential
-whose events can trigger them, or arrange another trusted check mechanism. Confirm organization
-and repository policies permit the chosen credential and workflow events.
+In direct mode, the workflow uses `GITHUB_TOKEN` for checkout and push. Optionally add
+`DOCS_PUBLISH_TOKEN` as an environment secret in `enterprise-compliance` to use a different
+credential for direct publishing. Give it repository contents write access and protect and rotate it.
 
 ## Repository settings
 
 | Setting | Why it matters |
 | --- | --- |
 | Branch protection or rulesets | Default publishing opens a PR for review. In `direct` mode the publishing credential must be allowed to push to the target branch. |
-| Workflow token permissions | Allow the workflow's declared permissions for contents, pull requests, issues, actions and security events. For PR mode, allow GitHub Actions to create pull requests when using `GITHUB_TOKEN`. |
+| Workflow token permissions | Allow the workflow's declared permissions for contents, pull requests, issues, actions and security events. Ensure the App can push its publishing branch and create PRs. |
 | Code scanning | Private/internal repositories need GitHub Code Security for SARIF upload; disable SARIF for manual runs if unavailable. |
 | Repository visibility and access | Generated documentation includes owners, collaborators, App permissions and findings. Keep access restricted. |
 

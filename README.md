@@ -18,10 +18,10 @@ Use it to:
 See the [governance check catalog](docs/checks.md) for every built-in check and its defaults.
 
 The project is a PowerShell 7.2+ module and GitHub Actions workflow. Collection uses a
-GitHub App with read permissions; routing repository issues to their target repositories also
-requires Issues write access. Workflow permissions are separate and used to publish generated docs
-and findings. Generated documentation can contain sensitive organization and repository metadata:
-keep its repository private or internal.
+GitHub App with read permissions. Publishing documentation pull requests also requires Contents
+and Pull requests write access on the documentation repository; routing repository issues to their
+target repositories requires Issues write access. Generated documentation can contain sensitive
+organization and repository metadata: keep its repository private or internal.
 
 The built-in checks are starting points, not proof of regulatory compliance. Results depend on the
 configured policy, GitHub API coverage, and the App's access; unavailable data is not treated as a
