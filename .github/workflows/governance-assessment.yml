@@ -9,7 +9,7 @@ on:
         description: Account mode
         type: choice
         required: true
-        default: enterprise
+        default: user
         options:
           - enterprise
           - organization
@@ -25,7 +25,7 @@ on:
       sync_issues:
         description: Create and synchronize compliance issues (requires compliance tests)
         type: boolean
-        default: true
+        default: false
       target_repository_issues:
         description: Create repository findings in their target repositories
         type: boolean
@@ -61,8 +61,6 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
-    # Environment secrets (GH_APP_PRIVATE_KEY) are only released to runs on the branches the
-    # environment allows (main). See docs/configuration/03-setup.md.
     environment: enterprise-compliance
     outputs:
       documentation: ${{ steps.selections.outputs.documentation }}
