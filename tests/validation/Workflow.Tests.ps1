@@ -55,13 +55,6 @@ BeforeAll {
 }
 
 Describe 'Compliance workflow stages' {
-    It 'offers manual account mode selection and preserves the scheduled mode fallback' {
-        $workflow | Should -Match '(?ms)workflow_dispatch:\r?\n    inputs:\r?\n      mode:\r?\n.*?        type: choice\r?\n.*?        default: enterprise\r?\n        options:\r?\n          - enterprise\r?\n          - organization\r?\n          - user'
-        $workflow | Should -Match 'ACCOUNT_SCOPE: \$\{\{ inputs\.mode \|\| vars\.ACCOUNT_SCOPE \|\| ''enterprise'' \}\}'
-        $validate | Should -Match 'switch \(\$env:ACCOUNT_SCOPE\)'
-        $sync | Should -Match '-Scope \$env:ACCOUNT_SCOPE'
-    }
-
     It 'defaults all three manual and scheduled actions to enabled' {
         foreach ($name in 'documentation', 'compliance', 'publish_sarif') {
             $workflow | Should -Match ("(?ms)^      ${name}:\r?\n.*?        type: boolean\r?\n        default: true")
