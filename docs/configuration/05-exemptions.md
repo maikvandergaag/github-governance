@@ -23,7 +23,7 @@ Use the target key for the scope:
 
 ## Add or remove an exemption
 
-1. Find the exact check ID in the [check catalog](../repo/README.md#compliance-issues) or its
+1. Find the exact check ID in the [check catalog](../checks.md) or its
    `tests/<check-id>/check.json`.
 2. Add the target key to `exemptions` in `compliance/policy.json`, then add the check ID to its list.
 3. Submit the policy change through the repository's normal review process.
@@ -34,7 +34,8 @@ list becomes empty.
 
 An exemption affects only the named target and check; it does not disable the check for other targets.
 The evaluation skips the exempted check. If it previously had an open compliance issue, issue sync
-closes that issue because the check no longer fails for the exempted target.
+closes that issue because the check no longer fails for the exempted target, provided issue
+synchronization is enabled and the issue remains accessible in the configured destination.
 
 Exemptions are governance decisions. Protect `compliance/policy.json` with CODEOWNERS and required
 review, and include rationale in the pull request.

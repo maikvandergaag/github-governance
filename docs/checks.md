@@ -16,8 +16,8 @@ can override these defaults, and exemptions can skip specific targets. See
 reported as not evaluated, not as passing.
 
 The [CIS GitHub Benchmark](https://www.cisecurity.org/benchmark/software-supply-chain-security)
-is a reference for reviewing security settings. These checks are not currently mapped to a specific
-benchmark version, and passing them does not establish CIS conformance or certification.
+is a reference for reviewing security settings. Some checks map partially to recommendations in
+version 1.2.0; passing them does not establish CIS conformance or certification.
 
 ## Enterprise checks
 

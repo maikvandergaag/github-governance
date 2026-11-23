@@ -15,11 +15,13 @@ for your repository's host.
 When target-repository issue routing is enabled, grant the App repository **Issues: read and write**
 on each target repository. Repository issues must also be enabled.
 
-The workflow also uses its built-in `GITHUB_TOKEN` for writes:
+The workflow uses its built-in `GITHUB_TOKEN` for writes unless an optional
+`DOCS_PUBLISH_TOKEN` is configured for documentation publishing:
 
 | Permission | Job | Purpose |
 | --- | --- | --- |
 | `contents: write` | `commit_docs` | Commit generated documentation |
+| `pull-requests: write` | `commit_docs` | Open and close managed documentation pull requests |
 | `security-events: write` | `publish_sarif` | Upload SARIF |
 | `issues: write` | `sync-issues` | Create, update and close issues in the documentation repository |
 | `actions: read` | `publish_sarif` | Read workflow-run metadata for SARIF |
