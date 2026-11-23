@@ -201,7 +201,8 @@ pwsh ./tests/Invoke-SmokeTest.ps1
 
 Each folder under [`tests/`](../../tests/) named after a policy check contains a Pester test,
 its local policy, issue template and failure guidance. Import the GitHubGovernance module and
-connect the GitHub App before running an individual live test; see each folder's README for its inputs.
+connect the GitHub App before running an individual live test; check the test and, where present,
+the folder's README for its inputs.
 Run the mocked offline validations with:
 
 ```powershell

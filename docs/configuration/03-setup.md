@@ -3,13 +3,16 @@
 [Previous: Prerequisites and access](02-prerequisites-and-access.md) · [Handbook](README.md) · [Next: Compliance policy](04-policy.md)
 
 This chapter sets up the repository workflow. Read [Prerequisites and access](02-prerequisites-and-access.md)
-first to create and install the reader App.
-Check that your copy's [ignore rules permit generated documentation](../repo/SETUP.md#allow-generated-documentation-in-git)
-before running the publishing workflow.
+first to create and install the reader App. See the [generated documentation Git guidance](../repo/SETUP.md#allow-generated-documentation-in-git)
+for how the workflow handles ignored output.
 
 ## Actions variables and secrets
 
-Add these repository or environment variables under **Settings > Secrets and variables > Actions**:
+Add these repository variables under **Settings > Secrets and variables > Actions**, or use
+organization variables available to the repository. The workflow uses the `enterprise-compliance`
+environment for its jobs; `GH_APP_CLIENT_ID` may alternatively be an environment variable there.
+Keep the remaining variables at repository or organization scope because they are referenced by
+workflow-level configuration.
 
 | Name | Required | Value |
 | --- | --- | --- |
@@ -18,7 +21,7 @@ Add these repository or environment variables under **Settings > Secrets and var
 | `ACCOUNT_SCOPE` | No | Scheduled-run mode: `enterprise` (default), `organization`, or `user`; manual runs use the dropdown |
 | `SYNC_ISSUES` | No | Set to `false` to disable issue synchronization on scheduled runs; defaults to enabled |
 | `TARGET_REPOSITORY_ISSUES` | No | Set to `true` to manage repository issues in their target repositories on scheduled runs; defaults to disabled |
-| `GH_APP_CLIENT_ID` | Yes | GitHub App client ID (starts with `Iv`) |
+| `GH_APP_CLIENT_ID` | Yes | GitHub App client ID |
 | `ENTERPRISE_API_URL` | GHE.com only | `https://api.<subdomain>.ghe.com`; empty defaults to `https://api.github.com` |
 | `DOCS_PUBLISH_MODE` | No | `pull_request` (default) proposes generated documentation; `direct` pushes it to the run's branch. |
 
@@ -35,7 +38,8 @@ Optionally add `DOCS_PUBLISH_TOKEN` as an environment secret in `enterprise-comp
 documentation publishing. The publishing job uses it instead of `GITHUB_TOKEN` for checkout,
 push and PR operations. Use a dedicated, appropriately scoped credential with repository contents
 and pull requests write access, restrict access to the environment, and rotate it as needed.
-It is separate from the read-only collector App.
+It is separate from the collector App, which needs Issues write access only when routing
+repository issues to their target repositories.
 
 PRs created or updated with `GITHUB_TOKEN` do not trigger ordinary `push` or `pull_request`
 workflows. If branch rules require those checks, configure `DOCS_PUBLISH_TOKEN` with a credential

@@ -1,5 +1,7 @@
 # GitHub Governance
 
+<img src="docs/assets/logo.svg" alt="GitHub Governance logo" width="120" align="right">
+
 GitHub Governance is an open-source community toolkit for documenting GitHub configuration and
 evaluating it against customizable policies. It supports GitHub Enterprise Cloud enterprises,
 standalone organizations, and personal accounts. Platform administrators, security teams, and
@@ -15,9 +17,10 @@ Use it to:
 
 See the [governance check catalog](docs/checks.md) for every built-in check and its defaults.
 
-The project is a PowerShell 7.2+ module and GitHub Actions workflow. The collector uses a
-read-only GitHub App; workflow permissions are separate and used to publish generated docs and
-findings. Generated documentation can contain sensitive organization and repository metadata:
+The project is a PowerShell 7.2+ module and GitHub Actions workflow. Collection uses a
+GitHub App with read permissions; routing repository issues to their target repositories also
+requires Issues write access. Workflow permissions are separate and used to publish generated docs
+and findings. Generated documentation can contain sensitive organization and repository metadata:
 keep its repository private or internal.
 
 The built-in checks are starting points, not proof of regulatory compliance. Results depend on the
@@ -27,8 +30,8 @@ pass. See [coverage and limitations](docs/repo/README.md#notes) and
 
 The [CIS GitHub Benchmark](https://www.cisecurity.org/benchmark/software-supply-chain-security)
 is a reference for reviewing GitHub security configurations and tailoring governance policies.
-This project does not currently provide a version-specific CIS control mapping or claim complete
-benchmark coverage or certification.
+Some checks reference CIS GitHub Benchmark v1.2.0 recommendations as partial assessments. The
+project does not claim complete benchmark coverage or certification.
 
 ## See it in action
 

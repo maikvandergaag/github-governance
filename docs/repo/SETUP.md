@@ -44,28 +44,19 @@ proposes public upstream changes to your private copy for review.
 
 ## Allow generated documentation in Git
 
-The publishing workflow stages `docs/output/`. The current upstream `.gitignore` does not ignore
-this directory, so no change is needed for an unmodified copy. If your organization's ignore rules
-exclude it, update `.gitignore` **in your private or internal copy** before the first run. For
-example, add these exceptions after the rules that ignore the directory:
+The upstream `.gitignore` ignores new files under `docs/output/` to help prevent accidental
+local commits. The publishing workflow explicitly force-adds that directory, so no ignore-rule
+change is needed for the workflow. Already tracked output remains tracked. Keep the repository
+private or internal and review generated documentation before merging its pull request.
 
-```gitignore
-!/docs/
-!/docs/output/
-!/docs/output/**
-```
-
-Check which rules apply with:
+To inspect your local ignore rules, run:
 
 ```bash
 git check-ignore -v --no-index docs/output/README.md docs/output/_data/example.json
 ```
 
-No output means no ignore rule matched; a matching exception starts with `!`. If a positive ignore
-rule still applies, adjust it or its parent-directory rules so generated files can be staged.
-Review and commit any `.gitignore` change to your copy before running the workflow. These
-exceptions allow generated files and snapshots to be committed, so ensure the repository is
-private or internal and access is restricted.
+No output means no ignore rule matched; a matching exception starts with `!`. If you deliberately
+stage local generated output, review it and use `git add -f` only in your restricted copy.
 
 ## Choose your account scope
 
@@ -75,8 +66,9 @@ private or internal and access is restricted.
 | Organization | Organization and repository checks | Follow [standalone organization setup](../configuration/03-setup.md#standalone-organizations-and-personal-accounts) and choose `organization`. |
 | Personal account | Repository checks for repositories owned by the account | Follow [personal account setup](../configuration/03-setup.md#standalone-organizations-and-personal-accounts) and choose `user`. |
 
-All paths need PowerShell 7.2+ for local use and a read-only GitHub App with the permissions
-appropriate to the scope. The workflow uses a separate token to publish results; generated
+All paths need PowerShell 7.2+ for local use and a GitHub App with read permissions
+appropriate to the scope. Target-repository issue routing also requires Issues write access.
+The workflow uses a separate token for other publishing; generated
 documentation should be stored in a private or internal repository. See
 [prerequisites and access](../configuration/02-prerequisites-and-access.md) before configuring
 credentials. For an introduction without credentials, see the [illustrative example](../example.md).

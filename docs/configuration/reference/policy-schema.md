@@ -48,5 +48,6 @@ Example central override:
 }
 ```
 
-Check-specific parameter names and defaults are described by each check's policy and its
-documentation under `tests/<check-id>/README.md`.
+Check-specific parameter names and defaults are in each check's `policy.json` and the
+[check catalog](../../checks.md). Some check folders also have a `README.md` with additional
+guidance.

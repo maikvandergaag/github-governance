@@ -1,6 +1,8 @@
 <!-- This page is built at the site root; links are relative to the staged site. -->
 <div class="hero" markdown>
 
+<img class="hero-logo" src="docs/assets/logo.svg" alt="">
+
 # Understand your GitHub governance
 
 Document configuration, evaluate it against your policies, and turn findings into practical next
@@ -47,7 +49,7 @@ Configure checks, exemptions and the outputs your team needs.
 
 ## How it works
 
-A read-only GitHub App collects accessible configuration. The toolkit evaluates checks against
+A GitHub App collects accessible configuration using read permissions. The toolkit evaluates checks against
 your policy and can publish documentation, issues and SARIF results. Findings depend on access and
 coverage: missing data is **not** treated as compliant.
 

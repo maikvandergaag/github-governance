@@ -40,6 +40,18 @@
   margin: 0 0 0.55rem;
 }
 
+.md-typeset .hero .hero-logo {
+  float: right;
+  width: 7rem;
+  margin: 0 0 1rem 1.5rem;
+}
+
+.md-typeset .hero::after {
+  display: block;
+  clear: both;
+  content: "";
+}
+
 .md-typeset .hero p {
   max-width: 46rem;
   font-size: 1.05rem;
@@ -83,16 +95,21 @@
 }
 
 @media (max-width: 48em) {
-  .md-typeset p:has(> img[src*="/assets/"]) {
+  .md-typeset .hero .hero-logo {
+    width: 4.5rem;
+    margin-left: 0.75rem;
+  }
+
+  .md-typeset p:has(> img[src*="/assets/"]:not(.hero-logo)) {
     overflow-x: auto;
   }
 
-  .md-typeset p > img[src*="/assets/"] {
+  .md-typeset p > img[src*="/assets/"]:not(.hero-logo) {
     width: 42rem;
     max-width: none;
   }
 
-  .md-typeset p:has(> img[src*="/assets/"])::after {
+  .md-typeset p:has(> img[src*="/assets/"]:not(.hero-logo))::after {
     display: block;
     color: var(--md-default-fg-color--light);
     content: "Scroll diagram horizontally →";

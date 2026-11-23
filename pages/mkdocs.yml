@@ -4,6 +4,8 @@ docs_dir: pages-src
 site_dir: pages-site
 theme:
   variant: modern
+  logo: docs/assets/logo.svg
+  favicon: docs/assets/logo.svg
   font: false
   palette:
     - media: "(prefers-color-scheme: light)"

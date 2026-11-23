@@ -14,9 +14,9 @@ reference when reviewing GitHub security settings and designing policies. Compar
 version and recommendations applicable to your environment with the
 [built-in check catalog](../checks.md) and your configured policy.
 
-The project does not currently provide a version-specific mapping between its checks and CIS
-recommendations. A passing result does not establish CIS benchmark conformance or certification;
-some recommendations may require additional checks or manual review.
+Some checks include partial mappings to CIS GitHub Benchmark v1.2.0 recommendations in their
+manifests. A passing result does not establish CIS benchmark conformance or certification; some
+recommendations require additional checks or manual review.
 
 ## Defaults and overrides
 

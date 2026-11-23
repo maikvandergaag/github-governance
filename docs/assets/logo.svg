@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title description">
+  <title id="title">GitHub Governance logo</title>
+  <desc id="description">A connected branching path and check mark within a shield.</desc>
+  <defs>
+    <linearGradient id="shield" x1="30" y1="12" x2="224" y2="242" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#203d5c"/>
+      <stop offset="1" stop-color="#0b1b2d"/>
+    </linearGradient>
+    <linearGradient id="line" x1="70" y1="55" x2="185" y2="186" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a8f3df"/>
+      <stop offset="1" stop-color="#46c8d0"/>
+    </linearGradient>
+  </defs>
+  <path d="M128 10 220 43v73c0 60-36 104-92 130C72 220 36 176 36 116V43Z" fill="url(#shield)"/>
+  <path d="M128 23 207 51v65c0 51-29 89-79 115-50-26-79-64-79-115V51Z" fill="none" stroke="#5d8ca6" stroke-opacity=".48" stroke-width="2"/>
+  <g fill="none" stroke="url(#line)" stroke-linecap="round" stroke-linejoin="round" stroke-width="12">
+    <path d="M84 82v78"/>
+    <path d="M84 113c0-22 12-29 32-29h29"/>
+    <path d="m108 152 19 19 44-46"/>
+  </g>
+  <circle cx="84" cy="79" r="13" fill="#b7f5e1"/>
+  <circle cx="84" cy="164" r="13" fill="#62d9d4"/>
+  <circle cx="153" cy="84" r="13" fill="#8debdc"/>
+</svg>
