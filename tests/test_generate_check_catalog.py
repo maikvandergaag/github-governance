@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 
-SCRIPT = Path(__file__).resolve().parents[1] / ".github/scripts/generate-check-catalog.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "pages/scripts/generate-check-catalog.py"
 
 
 class GenerateCheckCatalogTests(unittest.TestCase):
