@@ -5,5 +5,17 @@
   "remediation": "Enterprise settings > Policies > Actions: allow enterprise and select non-enterprise actions only.",
   "dataSource": {
     "type": "enterprise-actions-permissions"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "allowed": {
+        "type": "array",
+        "items": { "type": "string", "enum": ["all", "local_only", "selected"] },
+        "minItems": 1
+      }
+    },
+    "required": ["allowed"],
+    "additionalProperties": false
   }
 }

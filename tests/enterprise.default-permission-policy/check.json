@@ -7,6 +7,18 @@
     "type": "enterprise-owner-info",
     "fields": "defaultRepositoryPermissionSetting"
   },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "allowed": {
+        "type": "array",
+        "items": { "type": "string", "enum": ["NONE", "READ", "WRITE", "ADMIN"] },
+        "minItems": 1
+      }
+    },
+    "required": ["allowed"],
+    "additionalProperties": false
+  },
   "cis": {
     "benchmark": "CIS GitHub Benchmark",
     "version": "1.2.0",

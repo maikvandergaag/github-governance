@@ -99,6 +99,241 @@ function Test-PolicySetting {
     }
 }
 
+function Get-GHJsonProperties {
+    param($InputObject)
+    if ($InputObject -is [System.Collections.IDictionary]) {
+        return , @($InputObject.Keys | ForEach-Object {
+                [pscustomobject]@{ Name = [string]$_; Value = $InputObject[$_] }
+            })
+    }
+    if ($InputObject -is [pscustomobject]) {
+        return , @($InputObject.PSObject.Properties | Where-Object MemberType -eq 'NoteProperty')
+    }
+    return , @()
+}
+
+function Test-GHJsonSchemaNode {
+    param(
+        $InputObject,
+        $Schema,
+        [string] $Path,
+        [System.Collections.Generic.List[string]] $Errors,
+        [switch] $AllowMissingRequired
+    )
+
+    $type = Get-Prop $Schema 'type'
+    $validType = switch ($type) {
+        'object' { $InputObject -is [pscustomobject] -or $InputObject -is [System.Collections.IDictionary] }
+        'array' { $InputObject -is [array] }
+        'string' { $InputObject -is [string] }
+        'boolean' { $InputObject -is [bool] }
+        'integer' {
+            $InputObject -is [ValueType] -and $InputObject -isnot [bool] -and
+            $InputObject -isnot [char] -and [double]$InputObject -eq [math]::Truncate([double]$InputObject)
+        }
+        'number' { $InputObject -is [ValueType] -and $InputObject -isnot [bool] -and $InputObject -isnot [char] }
+        default { $true }
+    }
+    if (-not $validType) {
+        $Errors.Add("$Path must be of type $type.")
+        return
+    }
+
+    $enum = Get-Prop $Schema 'enum'
+    if ($null -ne $enum -and -not (@($enum) -ccontains $InputObject)) {
+        $Errors.Add("$Path must be one of: $(@($enum) -join ', ').")
+    }
+    $pattern = Get-Prop $Schema 'pattern'
+    if ($pattern -and $InputObject -is [string] -and $InputObject -cnotmatch $pattern) {
+        $Errors.Add("$Path does not match the required pattern.")
+    }
+    foreach ($constraint in @(@('minimum', 'ge'), @('maximum', 'le'), @('minLength', 'len-ge'), @('minItems', 'count-ge'))) {
+        $limit = Get-Prop $Schema $constraint[0]
+        if ($null -eq $limit) { continue }
+        $violated = switch ($constraint[1]) {
+            'ge' { $InputObject -is [ValueType] -and $InputObject -lt $limit }
+            'le' { $InputObject -is [ValueType] -and $InputObject -gt $limit }
+            'len-ge' { $InputObject -is [string] -and $InputObject.Length -lt $limit }
+            'count-ge' { ($InputObject -is [array]) -and $InputObject.Count -lt $limit }
+        }
+        if ($violated) { $Errors.Add("$Path does not satisfy $($constraint[0]) = $limit.") }
+    }
+
+    if ($type -eq 'object' -or ($null -eq $type -and ($InputObject -is [pscustomobject] -or $InputObject -is [System.Collections.IDictionary]))) {
+        $properties = Get-GHJsonProperties $InputObject
+        $schemaProperties = Get-Prop $Schema 'properties'
+        if (-not $AllowMissingRequired) {
+            $requiredNames = Get-Prop $Schema 'required'
+            foreach ($requiredName in @($requiredNames)) {
+                if ($null -ne $requiredName -and -not ($properties | Where-Object { $_.Name -ceq $requiredName })) {
+                    $Errors.Add("$Path.$requiredName is required.")
+                }
+            }
+        }
+        foreach ($property in $properties) {
+            $propertySchema = if ($schemaProperties) {
+                $schemaProperties.PSObject.Properties[[string]$property.Name]
+            }
+            if ($propertySchema) {
+                Test-GHJsonSchemaNode -InputObject $property.Value -Schema $propertySchema.Value `
+                    -Path "$Path.$($property.Name)" -Errors $Errors -AllowMissingRequired:$AllowMissingRequired
+                continue
+            }
+            $additional = Get-Prop $Schema 'additionalProperties'
+            if ($additional -ceq $false) {
+                $Errors.Add("$Path.$($property.Name) is not allowed.")
+            } elseif ($additional -is [pscustomobject] -or $additional -is [System.Collections.IDictionary]) {
+                Test-GHJsonSchemaNode -InputObject $property.Value -Schema $additional `
+                    -Path "$Path.$($property.Name)" -Errors $Errors -AllowMissingRequired:$AllowMissingRequired
+            }
+        }
+        $namePattern = Get-Prop (Get-Prop $Schema 'propertyNames') 'pattern'
+        if ($namePattern) {
+            foreach ($property in $properties) {
+                if ($property.Name -cnotmatch $namePattern) {
+                    $Errors.Add("$Path property name '$($property.Name)' does not match the required pattern.")
+                }
+            }
+        }
+    } elseif ($type -eq 'array') {
+        $itemSchema = Get-Prop $Schema 'items'
+        if ($itemSchema) {
+            for ($index = 0; $index -lt $InputObject.Count; $index++) {
+                Test-GHJsonSchemaNode -InputObject $InputObject[$index] -Schema $itemSchema `
+                    -Path "$Path[$index]" -Errors $Errors -AllowMissingRequired:$AllowMissingRequired
+            }
+        }
+        if ((Get-Prop $Schema 'uniqueItems') -ceq $true) {
+            $serialized = @($InputObject | ForEach-Object { ConvertTo-Json -InputObject $_ -Depth 20 -Compress })
+            if (@($serialized | Select-Object -Unique).Count -ne $serialized.Count) {
+                $Errors.Add("$Path must contain unique items.")
+            }
+        }
+    }
+}
+
+function Assert-GHJsonSchema {
+    param($InputObject, [string] $SchemaName, [string] $DocumentName)
+
+    $schemaPath = Join-Path $PSScriptRoot "../../../schemas/$SchemaName"
+    try {
+        $schema = Get-Content -LiteralPath $schemaPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        throw "Could not read JSON schema $schemaPath`: $($_.Exception.Message)"
+    }
+    $errors = [System.Collections.Generic.List[string]]::new()
+    Test-GHJsonSchemaNode -InputObject $InputObject -Schema $schema -Path '$' -Errors $errors
+    if ($errors.Count -gt 0) {
+        throw "$DocumentName is invalid: $($errors -join ' ')"
+    }
+}
+
+function Get-GHParameterSchema {
+    param($Manifest, [string] $CheckId)
+
+    $schema = Get-Prop $Manifest 'parameters'
+    if ($null -eq $schema) {
+        return [pscustomobject]@{
+            type = 'object'
+            properties = [pscustomobject]@{}
+            additionalProperties = $false
+        }
+    }
+    if ((Get-Prop $schema 'type') -ne 'object' -or
+        (Get-Prop $schema 'additionalProperties') -cne $false -or
+        $null -eq (Get-Prop $schema 'properties')) {
+        throw "Compliance manifest '$CheckId' has an invalid parameters schema."
+    }
+    $supportedKeywords = @('type', 'properties', 'required', 'additionalProperties')
+    foreach ($keyword in (Get-GHJsonProperties $schema)) {
+        if ($keyword.Name -notin $supportedKeywords) {
+            throw "Compliance manifest '$CheckId' uses unsupported parameter schema keyword '$($keyword.Name)'."
+        }
+    }
+    $parameterProperties = Get-Prop $schema 'properties'
+    foreach ($parameter in (Get-GHJsonProperties $parameterProperties)) {
+        $parameterSchema = $parameter.Value
+        $schemaKeywords = @('type', 'enum', 'minimum', 'maximum', 'minLength', 'minItems', 'items')
+        foreach ($keyword in (Get-GHJsonProperties $parameterSchema)) {
+            if ($keyword.Name -notin $schemaKeywords) {
+                throw "Compliance manifest '$CheckId' uses unsupported parameter schema keyword '$($keyword.Name)' for '$($parameter.Name)'."
+            }
+        }
+        if ((Get-Prop $parameterSchema 'type') -notin @('string', 'integer', 'number', 'boolean', 'array')) {
+            throw "Compliance manifest '$CheckId' has an invalid parameter type for '$($parameter.Name)'."
+        }
+        if ((Get-Prop $parameterSchema 'type') -eq 'array' -and -not (Get-Prop $parameterSchema 'items')) {
+            throw "Compliance manifest '$CheckId' must define item constraints for array parameter '$($parameter.Name)'."
+        }
+    }
+    $requiredNames = Get-Prop $schema 'required'
+    foreach ($requiredName in @($requiredNames)) {
+        if ($null -ne $requiredName -and -not $parameterProperties.PSObject.Properties[$requiredName]) {
+            throw "Compliance manifest '$CheckId' requires undeclared parameter '$requiredName'."
+        }
+    }
+    return $schema
+}
+
+function Assert-GHCheckParameters {
+    param($Parameters, $Schema, [string] $DocumentName, [switch] $AllowMissingRequired)
+
+    if ($null -eq $Parameters) {
+        $Parameters = [pscustomobject]@{}
+    }
+    $errors = [System.Collections.Generic.List[string]]::new()
+    Test-GHJsonSchemaNode -InputObject $Parameters -Schema $Schema -Path '$.params' `
+        -Errors $errors -AllowMissingRequired:$AllowMissingRequired
+    if ($errors.Count -gt 0) {
+        throw "$DocumentName has invalid parameters: $($errors -join ' ')"
+    }
+}
+
+function Assert-GHObjectProperties {
+    param($InputObject, [string[]] $Allowed, [string] $DocumentName)
+    foreach ($property in (Get-GHJsonProperties $InputObject)) {
+        if ($property.Name -notin $Allowed) {
+            throw "$DocumentName contains unsupported property '$($property.Name)'."
+        }
+    }
+}
+
+function Assert-GHCompliancePolicy {
+    param($Policy, $Checks)
+
+    Assert-GHJsonSchema -InputObject $Policy -SchemaName 'compliance-policy.schema.json' -DocumentName 'Central compliance policy'
+    $known = @($Checks.enterprise.Keys) + @($Checks.org.Keys) + @($Checks.repo.Keys)
+    foreach ($entry in (Get-GHJsonProperties (Get-Prop $Policy 'checks'))) {
+        if ($entry.Name -notin $known) {
+            throw "Unknown compliance check in central policy: $($entry.Name)"
+        }
+        $definition = $Checks.enterprise[$entry.Name]
+        if (-not $definition) { $definition = $Checks.org[$entry.Name] }
+        if (-not $definition) { $definition = $Checks.repo[$entry.Name] }
+        Assert-GHJsonSchema -InputObject $entry.Value -SchemaName 'check-override.schema.json' -DocumentName "Central policy check '$($entry.Name)'"
+        Assert-GHCheckParameters -Parameters (Get-Prop $entry.Value 'params') -Schema $definition.ParameterSchema `
+            -DocumentName "Central policy check '$($entry.Name)'" -AllowMissingRequired
+    }
+    foreach ($exemption in (Get-GHJsonProperties (Get-Prop $Policy 'exemptions'))) {
+        $targetScope = if ($exemption.Name.StartsWith('enterprise:')) {
+            'enterprise'
+        } elseif ($exemption.Name.Contains('/')) {
+            'repo'
+        } else {
+            'org'
+        }
+        foreach ($id in $exemption.Value) {
+            if ($id -notin $known) {
+                throw "Exemption '$($exemption.Name)' references unknown check '$id'."
+            }
+            $checkScope = if ($Checks.enterprise.Contains($id)) { 'enterprise' } elseif ($Checks.org.Contains($id)) { 'org' } else { 'repo' }
+            if ($targetScope -ne $checkScope) {
+                throw "Exemption '$($exemption.Name)' cannot reference $checkScope check '$id'."
+            }
+        }
+    }
+}
+
 function Get-CompliancePolicyCheck {
     param([string] $Id, [string] $TestsPath, [hashtable] $Cache)
     if (-not $Cache.ContainsKey($Id)) {
@@ -138,6 +373,7 @@ function Get-GHComplianceChecks {
         } catch {
             throw "Could not read compliance manifest $manifestPath`: $($_.Exception.Message)"
         }
+        Assert-GHJsonSchema -InputObject $manifest -SchemaName 'check-manifest.schema.json' -DocumentName "Compliance manifest $manifestPath"
         $manifestId = Get-Prop $manifest 'id'
         $scope = Get-Prop $manifest 'scope'
         $title = Get-Prop $manifest 'title'
@@ -147,6 +383,7 @@ function Get-GHComplianceChecks {
         if ($manifestId -ne $id -or $id -notmatch '^[a-z0-9]+(?:[.-][a-z0-9]+)*$') {
             throw "Compliance manifest $manifestPath must have an id matching its folder name."
         }
+        $parameterSchema = Get-GHParameterSchema -Manifest $manifest -CheckId $id
         if ($scope -notin @('enterprise', 'org', 'repo') -or -not $id.StartsWith("$scope.")) {
             throw "Compliance manifest $manifestPath has an invalid scope for '$id'."
         }
@@ -165,21 +402,24 @@ function Get-GHComplianceChecks {
 
         switch ($sourceType) {
             'enterprise-owner-info' {
+                Assert-GHObjectProperties $dataSource @('type', 'fields') "Data source for '$id'"
                 if ($scope -ne 'enterprise' -or [string]::IsNullOrWhiteSpace((Get-Prop $dataSource 'fields'))) {
                     throw "Compliance check '$id' has an invalid enterprise-owner-info data source."
                 }
             }
             'enterprise-actions-permissions' {
-                if ($scope -ne 'enterprise') {
+                if ($scope -ne 'enterprise' -or (Get-GHJsonProperties $dataSource).Count -ne 1) {
                     throw "Compliance check '$id' has an invalid enterprise-actions-permissions data source."
                 }
             }
             'organization-section' {
+                Assert-GHObjectProperties $dataSource @('type', 'section') "Data source for '$id'"
                 if ($scope -ne 'org' -or (Get-Prop $dataSource 'section') -notin @('settings', 'actionsPermissions', 'actionsWorkflowPermissions', 'webhooks', 'admins', 'rulesets', 'securityConfigDefaults', 'installations', 'actionsSecrets', 'runnerGroups')) {
                     throw "Compliance check '$id' has an invalid organization-section data source."
                 }
             }
             'repository' {
+                Assert-GHObjectProperties $dataSource @('type', 'codeOwners', 'gitAttributes', 'gitIgnore', 'readme') "Data source for '$id'"
                 $codeOwners = Get-Prop $dataSource 'codeOwners'
                 $gitAttributes = Get-Prop $dataSource 'gitAttributes'
                 $gitIgnore = Get-Prop $dataSource 'gitIgnore'
@@ -192,7 +432,7 @@ function Get-GHComplianceChecks {
                 }
             }
             'repository-branch-rules' {
-                if ($scope -ne 'repo') {
+                if ($scope -ne 'repo' -or (Get-GHJsonProperties $dataSource).Count -ne 1) {
                     throw "Compliance check '$id' has an invalid repository-branch-rules data source."
                 }
             }
@@ -206,11 +446,8 @@ function Get-GHComplianceChecks {
         } catch {
             throw "Could not read compliance policy $policyPath`: $($_.Exception.Message)"
         }
-        $localEnabled = Get-Prop $localPolicy 'enabled'
-        $localSeverity = Get-Prop $localPolicy 'severity'
-        if ($localEnabled -isnot [bool] -or $localSeverity -notin @('high', 'medium', 'low')) {
-            throw "Compliance policy $policyPath must specify boolean enabled and severity high, medium or low."
-        }
+        Assert-GHJsonSchema -InputObject $localPolicy -SchemaName 'check-policy.schema.json' -DocumentName "Compliance policy $policyPath"
+        Assert-GHCheckParameters -Parameters (Get-Prop $localPolicy 'params') -Schema $parameterSchema -DocumentName "Compliance policy $policyPath"
 
         $checks[$scope][$id] = [pscustomobject]@{
             Id = $id
@@ -220,6 +457,7 @@ function Get-GHComplianceChecks {
             DataSource = $dataSource
             Path = $testPath
             LocalPolicy = $localPolicy
+            ParameterSchema = $parameterSchema
         }
     }
     return $checks
@@ -259,6 +497,8 @@ function Merge-GHCompliancePolicy {
                 severity = $severity
                 params = [pscustomobject]$params
             }
+            Assert-GHJsonSchema -InputObject $effective -SchemaName 'check-policy.schema.json' -DocumentName "Merged policy check '$id'"
+            Assert-GHCheckParameters -Parameters $effective.params -Schema $definition.ParameterSchema -DocumentName "Merged policy check '$id'"
             $effectiveChecks | Add-Member -NotePropertyName $id -NotePropertyValue $effective
         }
     }

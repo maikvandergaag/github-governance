@@ -53,6 +53,8 @@ function Invoke-GHComplianceCheck {
     if ($enabled -isnot [bool]) {
         throw "Policy for $CheckId must specify a boolean enabled value."
     }
+    Assert-GHJsonSchema -InputObject $Config -SchemaName 'check-policy.schema.json' -DocumentName "Policy for $CheckId"
+    Assert-GHCheckParameters -Parameters (Get-Prop $Config 'params') -Schema $definition.ParameterSchema -DocumentName "Policy for $CheckId"
     if (-not $enabled) {
         return NotEvaluated 'The check is disabled in this policy.'
     }

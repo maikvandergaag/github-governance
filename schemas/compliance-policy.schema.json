@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/maikvandergaag/github-governance/schemas/compliance-policy.schema.json",
+  "title": "Central compliance policy",
+  "type": "object",
+  "required": ["checks", "exemptions"],
+  "properties": {
+    "$comment": { "type": "string" },
+    "checks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "severity": { "type": "string", "enum": ["high", "medium", "low"] },
+          "params": { "type": "object" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "exemptions": {
+      "type": "object",
+      "propertyNames": { "pattern": "^(enterprise:[A-Za-z0-9-]+|[A-Za-z0-9-]+(/[A-Za-z0-9_.-]+)?)$" },
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string", "pattern": "^[a-z0-9]+([.-][a-z0-9]+)*$" },
+        "uniqueItems": true,
+        "minItems": 1
+      }
+    }
+  },
+  "additionalProperties": false
+}

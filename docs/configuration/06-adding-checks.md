@@ -44,6 +44,11 @@ fields. When a check relates to the CIS GitHub Benchmark, record its version and
 numbers in the optional `cis` metadata. Mark partial coverage explicitly and describe any manual
 review needed in the issue template.
 
+If the evaluator accepts parameters, declare their JSON Schema under `parameters` in `check.json`.
+List all supported properties, constrain their types and values, and set `additionalProperties` to
+`false`. Required parameters must also have defaults in the local `policy.json`; central policy
+overrides may replace those defaults or provide only a subset.
+
 ## Local policy
 
 Provide a `policy.json` with boolean `enabled` and `severity` set to `high`, `medium` or `low`.

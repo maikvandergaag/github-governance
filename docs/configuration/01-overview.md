@@ -21,6 +21,7 @@ targets. Issues and SARIF require the relevant workflow selections and permissio
 | Path | Purpose |
 | --- | --- |
 | `.github/workflows/governance-assessment.yml` | Schedule, permissions and workflow steps |
+| `templates/governance-assessment.yml` | Inactive workflow template to copy and configure for your account |
 | `src/GitHubGovernance/` | Data collection, rendering, compliance evaluation and publishing logic |
 | `compliance/policy.json` | Central overrides and target-specific exemptions |
 | `tests/<check-id>/check.json` | Check identity, scope, reporting text and live data source |
