@@ -94,8 +94,8 @@ repository and its token. For GHE.com, pass the same `-ApiBaseUrl` to both comma
 | Section is *Not available* (HTTP 404) | The feature may be unavailable for the plan or token type. |
 | Check is not evaluated | Required data is incomplete or inaccessible; inspect App permissions and installation. |
 | Manifest discovery fails | Check the JSON, scope prefix, matching folder/test ID, local `policy.json` and `issue.md`. |
-| Documentation PR cannot be created | Allow Actions to create PRs, or configure a suitably scoped `DOCS_PUBLISH_TOKEN`; see [setup](03-setup.md#repository-settings). |
-| Documentation PR has no required checks | `GITHUB_TOKEN` does not trigger ordinary PR workflows; use a suitable publishing credential or another trusted check mechanism, as described in [setup](03-setup.md#actions-variables-and-secrets). |
+| Documentation PR cannot be created | Check that the App is installed on the documentation repository with Contents and Pull requests read and write permissions, and that branch rules permit it to push. |
+| Documentation PR has no required checks | Check repository and organization policy for App-generated workflow events and required checks. |
 | Publishing branch is unmanaged or modified | Review the branch and its PR manually; the workflow refuses to overwrite it. |
 | Protected-branch push fails in direct mode | Use the default PR mode, or allow the publishing credential to push under the branch rules. |
 | SARIF upload fails | Confirm workflow token permissions and that Code Security is enabled for a private/internal repository. |

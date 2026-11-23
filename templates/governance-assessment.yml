@@ -281,11 +281,21 @@ jobs:
       sha: ${{ steps.commit.outputs.sha }}
       docs_committed: ${{ steps.commit.outputs.docs_committed }}
     steps:
+      - name: Create documentation publishing App token
+        if: ${{ env.DOCS_PUBLISH_MODE == 'pull_request' }}
+        id: docs-app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ vars.GH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 0
-          token: ${{ secrets.DOCS_PUBLISH_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ steps.docs-app-token.outputs.token || secrets.DOCS_PUBLISH_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Download findings and documentation
         if: ${{ needs.validate.outputs.compliance == 'true' }}
@@ -304,8 +314,8 @@ jobs:
         shell: bash
         env:
           RUN_COMPLIANCE: ${{ needs.validate.outputs.compliance }}
-          GH_TOKEN: ${{ secrets.DOCS_PUBLISH_TOKEN || secrets.GITHUB_TOKEN }}
-          GH_ENTERPRISE_TOKEN: ${{ secrets.DOCS_PUBLISH_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.docs-app-token.outputs.token || secrets.DOCS_PUBLISH_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_ENTERPRISE_TOKEN: ${{ steps.docs-app-token.outputs.token || secrets.DOCS_PUBLISH_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"

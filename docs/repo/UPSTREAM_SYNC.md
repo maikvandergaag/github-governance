@@ -13,7 +13,7 @@ merge the PR, modify your target branch directly, or send your internal changes 
    shares a common ancestor with upstream.
 2. Create a **separate GitHub App** for synchronization and install it on the copy, with repository
    permissions **Contents: read and write**, **Pull requests: read and write**, and **Workflows:
-   read and write**. The read-only inventory App is not suitable. The sync App can introduce
+   read and write**. Do not reuse the inventory App. The sync App can introduce
    workflow changes, so restrict its installation to this repository and protect its key.
 3. In the copy's **Settings > Secrets and variables > Actions**, add the repository variable
    `SYNC_APP_CLIENT_ID` with the App's client ID and the repository secret `SYNC_APP_PRIVATE_KEY` with
