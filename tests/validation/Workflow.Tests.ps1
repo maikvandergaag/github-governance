@@ -406,7 +406,7 @@ esac
             Copy-Item "$source/generated-docs.patch" "$destination/generated-docs.patch"
             Invoke-BashStep $destination $publish
             $branchHash = (& bash -c 'printf %s "$GITHUB_REF_NAME" | git hash-object --stdin').Trim()
-            $branch = "github-governance/docs-$branchHash"
+            $branch = "feature/docs-$branchHash"
             (& git --git-dir=$remote rev-parse "refs/heads/$base").Trim() | Should -Be $baseSha
             (& git --git-dir=$remote show "refs/heads/${branch}:docs/enterprise/page.md").Trim() | Should -Be 'first inventory'
             Get-Content $env:GITHUB_OUTPUT | Should -Contain 'docs_committed=false'
