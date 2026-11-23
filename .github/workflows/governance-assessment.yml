@@ -17,7 +17,7 @@ on:
       documentation:
         description: Generate and publish documentation
         type: boolean
-        default: true
+        default: false
       compliance:
         description: Run compliance tests
         type: boolean
