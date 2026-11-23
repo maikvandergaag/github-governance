@@ -1,4 +1,0 @@
-site_name: GitHub Governance
-site_url: !ENV PAGES_URL
-docs_dir: pages-src
-site_dir: pages-site

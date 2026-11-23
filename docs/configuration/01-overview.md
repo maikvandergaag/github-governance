@@ -11,15 +11,10 @@ configured checks and accessible GitHub data; missing data is reported as unavai
 evaluated rather than assumed compliant. See the [illustrative example](../example.md) and
 [coverage notes](../repo/README.md#notes).
 
-```mermaid
-flowchart LR
-    App[Read-only GitHub App] --> Collect[Collect account and repository data]
-    Collect --> Docs[Generated Markdown and snapshots]
-    Docs --> Evaluate[Evaluate discovered compliance checks]
-    Evaluate --> Report[Compliance report]
-    Evaluate --> Issues[GitHub issues]
-    Evaluate --> Sarif[SARIF code-scanning alerts]
-```
+![The GitHub App provides snapshots for snapshot evaluation and live data for Pester evaluation. Both produce outcomes that can be reported; issues and SARIF are optional.](../assets/evaluation-modes.svg)
+
+Snapshot mode evaluates saved data. Workflow compliance uses live Pester evaluation and collected
+targets. Issues and SARIF require the relevant workflow selections and permissions.
 
 ## What is configured where
 

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 210" role="img" aria-labelledby="title desc">
+  <title id="title">Your first assessment</title>
+  <desc id="desc">Choose an account scope, configure access, review the policy, run the workflow, and review the results.</desc>
+  <rect width="1120" height="210" rx="24" fill="#10233a"/>
+  <g font-family="system-ui, sans-serif">
+    <text x="42" y="45" font-size="16" font-weight="700" fill="#79d6d3" letter-spacing="2">YOUR FIRST ASSESSMENT</text>
+    <path d="M80 105H1040" stroke="#53778e" stroke-width="4"/>
+    <g fill="#79d6d3">
+      <circle cx="80" cy="105" r="13"/><circle cx="320" cy="105" r="13"/>
+      <circle cx="560" cy="105" r="13"/><circle cx="800" cy="105" r="13"/><circle cx="1040" cy="105" r="13"/>
+    </g>
+    <g fill="#fff" font-size="17" font-weight="700">
+      <text x="80" y="151" text-anchor="middle">Choose scope</text>
+      <text x="320" y="151" text-anchor="middle">Configure App</text>
+      <text x="560" y="151" text-anchor="middle">Review policy</text>
+      <text x="800" y="151" text-anchor="middle">Run workflow</text>
+      <text x="1040" y="151" text-anchor="middle">Review results</text>
+    </g>
+  </g>
+</svg>

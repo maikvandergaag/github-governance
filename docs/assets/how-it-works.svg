@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 270" role="img" aria-labelledby="title desc">
+  <title id="title">How GitHub Governance works</title>
+  <desc id="desc">Connect a GitHub App, collect configuration, evaluate policies, and review the resulting findings.</desc>
+  <rect width="1120" height="270" rx="24" fill="#10233a"/>
+  <g font-family="system-ui, sans-serif">
+    <text x="42" y="46" font-size="16" font-weight="700" fill="#79d6d3" letter-spacing="2">FROM CONFIGURATION TO ACTION</text>
+    <g fill="#1c3551" stroke="#3b5870" stroke-width="2">
+      <rect x="38" y="78" width="235" height="130" rx="16"/>
+      <rect x="308" y="78" width="235" height="130" rx="16"/>
+      <rect x="578" y="78" width="235" height="130" rx="16"/>
+      <rect x="848" y="78" width="235" height="130" rx="16"/>
+    </g>
+    <g fill="#79d6d3" font-size="14" font-weight="700">
+      <text x="58" y="108">01 / CONNECT</text><text x="328" y="108">02 / COLLECT</text>
+      <text x="598" y="108">03 / EVALUATE</text><text x="868" y="108">04 / REVIEW</text>
+    </g>
+    <g fill="#fff" font-size="21" font-weight="700">
+      <text x="58" y="145">GitHub App</text><text x="328" y="145">Configuration</text>
+      <text x="598" y="145">Policy checks</text><text x="868" y="145">Findings</text>
+    </g>
+    <g fill="#c6d6e5" font-size="14">
+      <text x="58" y="178">Read-only access</text><text x="328" y="178">Inventory + snapshots</text>
+      <text x="598" y="178">Checks + exemptions</text><text x="868" y="178">Report, issues, SARIF</text>
+    </g>
+    <g stroke="#79d6d3" stroke-width="3" fill="none">
+      <path d="M276 143h25m-7-7 7 7-7 7"/><path d="M546 143h25m-7-7 7 7-7 7"/>
+      <path d="M816 143h25m-7-7 7 7-7 7"/>
+    </g>
+    <text x="42" y="241" fill="#c6d6e5" font-size="14">Issues and SARIF are optional. Missing data is not treated as a pass.</text>
+  </g>
+</svg>

@@ -87,7 +87,10 @@ The Pages workflow builds and deploys after pushes to `main` and can also be sta
 from `main`. It publishes the toolkit documentation and check guidance, not the generated
 `docs/output/` inventory or snapshots. Review Pages visibility and access controls before
 enabling it, particularly in copies containing organization-specific documentation.
-The build checks links and anchors between the generated pages before deployment.
+The Zensical site builds on pull requests and checks links and anchors before deployment.
+Edit `pages/home.md` and `pages/nav.yml` for the landing page and navigation;
+check catalog pages are generated from check manifests, policies and issue guidance. New
+documentation is discovered automatically under the additional-documentation navigation.
 New pages under `docs/` and tracked files linked from the documentation are included automatically.
 Files under `docs/output/`, `compliance/`, `src/`, and `.github/` are not automatically published;
 only check `README.md` and `issue.md` files are staged from `tests/`. Review linked files for
