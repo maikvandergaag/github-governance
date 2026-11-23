@@ -63,8 +63,8 @@ jobs:
           mv "$RUNNER_TEMP/operations.md" "$RUNNER_TEMP/pages-src/docs/configuration/07-operations-and-troubleshooting.md"
           sed "s|../../tests/|${TREE_URL}/tests/|g" "$RUNNER_TEMP/pages-src/docs/repo/README.md" > "$RUNNER_TEMP/repo.md"
           mv "$RUNNER_TEMP/repo.md" "$RUNNER_TEMP/pages-src/docs/repo/README.md"
-          python .github/scripts/generate-check-catalog.py "$GITHUB_WORKSPACE" "$RUNNER_TEMP/pages-src"
-          python .github/scripts/stage-linked-docs.py "$GITHUB_WORKSPACE" "$RUNNER_TEMP/pages-src"
+          python pages/scripts/generate-check-catalog.py "$GITHUB_WORKSPACE" "$RUNNER_TEMP/pages-src"
+          python pages/scripts/stage-linked-docs.py "$GITHUB_WORKSPACE" "$RUNNER_TEMP/pages-src"
           cp pages/mkdocs.yml "$RUNNER_TEMP/mkdocs.yml"
       - name: Build site
         env:

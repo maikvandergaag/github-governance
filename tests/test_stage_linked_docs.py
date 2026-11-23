@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 
-SCRIPT = Path(__file__).resolve().parents[1] / ".github/scripts/stage-linked-docs.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "pages/scripts/stage-linked-docs.py"
 
 
 class StageLinkedDocsTests(unittest.TestCase):
