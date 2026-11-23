@@ -54,11 +54,9 @@ and repository policies permit the chosen credential and workflow events.
 ## First run
 
 1. Review [Compliance policy](04-policy.md) and [Exemptions](05-exemptions.md).
-2. Start **Actions > GitHub Governance Assessment > Run workflow** and select the account mode and desired
+2. Start **Actions > Check - GitHub Platform > Run workflow** and select the account mode and desired
    actions. The default is enterprise mode with documentation, tests, issue synchronization and SARIF
    enabled. Select target-repository issues to route repository findings to their own repositories.
-3. Review `docs/output/README.md` for missing App installations and unavailable sections.
-   actions. The default is enterprise mode with documentation, tests and SARIF enabled.
 3. Review and merge the documentation pull request when using the default publishing mode. Then
    review `docs/output/README.md` for missing App installations and unavailable sections.
 4. Review `docs/output/compliance/README.md`, issues and **Security > Code scanning** for findings.

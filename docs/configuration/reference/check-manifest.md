@@ -15,6 +15,13 @@ runner how to collect its live data.
 | `remediation` | Yes | Actionable remediation text used in issues and SARIF. |
 | `dataSource` | Yes | Supported live data source and its options. |
 | `cis` | No | Benchmark name, version, recommendation numbers and coverage. `partial` means the check assesses only a subset and does not establish compliance with the complete recommendation. |
+| `parameters` | No | JSON Schema object that defines accepted evaluator parameters; use `properties`, `required` and `"additionalProperties": false` to reject undeclared parameter names. |
+
+The machine-readable manifest schema is [`schemas/check-manifest.schema.json`](../../../schemas/check-manifest.schema.json).
+When a check accepts parameters, declare their types and constraints in `parameters`; both the local
+defaults and central overrides are validated against that schema before evaluation. Central
+overrides may omit required parameter values supplied by the local defaults, but the merged
+configuration must satisfy all requirements.
 
 CIS references identify related controls, not a certification or a claim that the full manual
 assessment is automated. Checks without a defensible mapping omit this field.

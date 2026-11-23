@@ -4,7 +4,7 @@
 
 ## Workflow
 
-The `GitHub Governance Assessment` workflow runs weekly and supports manual dispatch:
+The `Check - GitHub Platform` workflow runs weekly and supports manual dispatch:
 
 1. `validate` checks selections, configuration and authentication.
 2. `inventory` collects snapshots and generates documentation.

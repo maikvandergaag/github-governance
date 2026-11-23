@@ -6,5 +6,17 @@
   "dataSource": {
     "type": "organization-section",
     "section": "actionsPermissions"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "allowed": {
+        "type": "array",
+        "items": { "type": "string", "enum": ["all", "local_only", "selected"] },
+        "minItems": 1
+      }
+    },
+    "required": ["allowed"],
+    "additionalProperties": false
   }
 }

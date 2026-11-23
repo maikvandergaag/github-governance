@@ -6,5 +6,13 @@
   "dataSource": {
     "type": "enterprise-owner-info",
     "fields": "admins(first: 100, role: OWNER) { totalCount nodes { login } }"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "max": { "type": "integer", "minimum": 0 }
+    },
+    "required": ["max"],
+    "additionalProperties": false
   }
 }

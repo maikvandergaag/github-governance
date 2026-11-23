@@ -6,6 +6,8 @@ This guide helps you create your own copy and configure it for an enterprise, st
 organization, or personal account. The [configuration handbook](../configuration/README.md)
 provides detailed instructions.
 
+![Five steps: choose a scope, configure the GitHub App, review policy, run the workflow, and review results.](../assets/setup-journey.svg)
+
 ## Create your repository
 
 Generated inventories can contain sensitive organization and repository metadata. For real
@@ -27,6 +29,27 @@ git remote rename origin upstream
 git remote add origin https://github.com/YOUR-ORG/YOUR-PRIVATE-REPO.git
 git push -u origin main
 ```
+
+## Prepare the governance workflow
+
+The reusable workflow template is `templates/governance-assessment.yml`. It is outside
+`.github/workflows/`, so GitHub Actions does not run it from that location. In your copy, replace
+the active workflow with the template:
+
+```bash
+cp templates/governance-assessment.yml .github/workflows/governance-assessment.yml
+```
+
+Before enabling Actions, edit the copied workflow's `workflow_dispatch.inputs.mode.default` to match
+your account (`enterprise`, `organization`, or `user`). Set the defaults for the other manual-run
+inputs (`documentation`, `compliance`, `sync_issues`, `target_repository_issues`, and `publish_sarif`)
+to the actions you want selected when starting a run manually.
+
+Scheduled runs do not use those manual input defaults. Set the `ACCOUNT_SCOPE` repository variable
+to the same account mode, and set `ENTERPRISE_SLUG` for enterprise mode or `ACCOUNT_LOGIN` for
+organization or user mode, as described in [Actions variables and secrets](../configuration/03-setup.md#actions-variables-and-secrets).
+Keep Actions disabled until the workflow and credentials are configured and reviewed, then enable
+them when you are ready to run it.
 
 The credential used to push must be permitted to add workflow files under `.github/workflows/`;
 for example, a classic personal access token needs the `workflow` scope. Follow your organization's

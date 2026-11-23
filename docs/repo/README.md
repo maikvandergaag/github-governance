@@ -117,10 +117,19 @@ source needs no registry or central-policy edits:
 }
 ```
 
-The manifest's `dataSource` must use a supported type: `enterprise-owner-info`,
-`enterprise-actions-permissions`, `organization-section` (`settings`, `actionsPermissions`,
-`webhooks`, `admins` or `rulesets`), or `repository` (optionally with `codeOwners` set to `present`
-or `valid`). Extend the live data-source handler when a check needs a new kind of GitHub request.
+The manifest's `dataSource` must use a supported type:
+
+- `enterprise-owner-info`
+- `enterprise-actions-permissions`
+- `organization-section` with `section` set to `settings`, `actionsPermissions`,
+  `actionsWorkflowPermissions`, `webhooks`, `admins`, `rulesets`, `securityConfigDefaults`,
+  `installations`, `actionsSecrets` or `runnerGroups`
+- `repository`, optionally with `codeOwners` set to `present` or `valid`, or with `gitAttributes`,
+  `gitIgnore` or `readme` set to `true`
+- `repository-branch-rules`
+
+See the [check manifest reference](../configuration/reference/check-manifest.md) for the complete
+field details. Extend the live data-source handler when a check needs a new kind of GitHub request.
 The check's folder, ID and Pester filename must match.
 
 Local dry run:

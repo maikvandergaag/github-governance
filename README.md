@@ -80,12 +80,30 @@ Invoke-Pester -Path ./tests/validation
 pwsh ./tests/Invoke-SmokeTest.ps1
 ```
 
+## Publish the tooling documentation
+
+To publish this handbook, select **GitHub Actions** as the source in **Settings > Pages**.
+The Pages workflow builds and deploys after pushes to `main` and can also be started manually
+from `main`. It publishes the toolkit documentation and check guidance, not the generated
+`docs/output/` inventory or snapshots. Review Pages visibility and access controls before
+enabling it, particularly in copies containing organization-specific documentation.
+The Zensical site builds on pull requests and checks links and anchors before deployment.
+Edit `pages/home.md` and `pages/nav.yml` for the landing page and navigation;
+check catalog pages are generated from check manifests, policies and issue guidance. New
+documentation is discovered automatically under the additional-documentation navigation.
+New pages under `docs/` and tracked files linked from the documentation are included automatically.
+Files under `docs/output/`, `compliance/`, `src/`, and `.github/` are not automatically published;
+only check `README.md` and `issue.md` files are staged from `tests/`. Review linked files for
+sensitive content.
+
 ## Community
 
 Use the repository's GitHub issues to ask for help, report bugs, or suggest checks and improvements.
 See [CONTRIBUTING.md](CONTRIBUTING.md) to contribute and our
 [code of conduct](CODE_OF_CONDUCT.md) for community expectations. Report security vulnerabilities
-privately as described in [SECURITY.md](SECURITY.md). No support response time is guaranteed.
+privately as described in [SECURITY.md](SECURITY.md). See [support boundaries](SUPPORT.md),
+[project roadmap](ROADMAP.md), [maintainer triage guidance](docs/governance/maintainers.md), and
+[decision records](docs/decisions/README.md). No support response time is guaranteed.
 
 ## License
 
